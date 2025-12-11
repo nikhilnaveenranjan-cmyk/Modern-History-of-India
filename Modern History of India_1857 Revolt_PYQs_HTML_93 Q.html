@@ -1,0 +1,1963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>YOUR QUIZ TITLE HERE</title>
+    <style>
+        :root {
+            --question-initial-bg: #fffde7; /* very light yellow (initial) */
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 17px;
+            margin: 0;
+            padding: 16px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            margin-top: 0;
+            margin-bottom: 16px;
+            text-align: left;
+        }
+        #quiz-container {
+            width: 100%;
+        }
+        .question-box {
+            width: 100%;
+            background-color: var(--question-initial-bg);
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 12px 14px 8px 14px;
+            margin-bottom: 12px;
+            position: relative;
+        }
+        .question-header {
+            margin-bottom: 6px;
+        }
+        .question-text {
+            font-weight: bold; /* Questions in bold, not options */
+        }
+        .options {
+            margin-top: 4px;
+            margin-left: 20px;
+        }
+        .option-label {
+            display: block;
+            margin: 3px 0;
+            cursor: pointer;
+        }
+        .option-label input[type="radio"] {
+            margin-right: 6px;
+        }
+        .exam-name {
+            margin-top: 6px;
+            text-align: right;
+            font-size: 0.9em;
+            font-style: italic;
+        }
+        .question-box.correct {
+            background-color: #d4edda; /* light green */
+        }
+        .question-box.incorrect {
+            background-color: #f8d7da; /* light red */
+        }
+        .question-box.neutral {
+            background-color: var(--question-initial-bg);
+        }
+        .question-box.unanswered {
+            background-color: var(--question-initial-bg);
+        }
+        /* NEW: questions with a '*' marked option (initial state) */
+        .question-box.star-marked {
+            background-color: #e3f2fd; /* very light sky blue */
+        }
+        .question-box.show-correct .correct-option-text {
+            font-weight: bold;
+            text-decoration: underline;
+        }
+        /* Explanation block (hidden by default, shown only on wrong answer) */
+        .explanation {
+            margin-top: 8px;
+            padding-top: 6px;
+            border-top: 1px dashed #ccc;
+            font-size: 0.95em;
+            font-style: italic;
+        }
+        #controls {
+            margin-top: 16px;
+            display: flex;
+            gap: 12px;
+        }
+        button {
+            font-size: 16px;
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: 1px solid #555;
+            cursor: pointer;
+            background-color: #ffffff;
+        }
+        button:hover {
+            filter: brightness(0.97);
+        }
+
+        /* TIMER + PAUSE/RESUME CONTAINER */
+        #timer-container {
+            position: fixed;
+            bottom: 10px;
+            right: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            z-index: 999;
+        }
+        #timer {
+            padding: 6px 10px;
+            background-color: #222;
+            color: #fff;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+        #pause-resume-btn {
+            font-size: 13px;
+            padding: 4px 8px;
+        }
+
+        #result-summary, #notes-section {
+            margin-top: 18px;
+            padding: 12px;
+            background-color: #ffffff;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+        #result-summary.hidden, #notes-section.hidden {
+            display: none;
+        }
+        #result-summary table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        #result-summary th, #result-summary td {
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        #notes-content p {
+            margin: 8px 0;
+        }
+        .print-buttons {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        @media print {
+            #timer-container, #controls {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>YOUR QUIZ TITLE HERE</h1>
+
+    <div id="quiz-container"></div>
+
+    <div id="controls">
+        <button id="submit-btn">Submit Quiz</button>
+        <button id="reset-btn">Reset Quiz</button>
+    </div>
+
+    <div id="result-summary" class="hidden"></div>
+
+    <div id="notes-section" class="hidden">
+        <h2>Revision Notes (Wrong &amp; Unattempted Only)</h2>
+        <div id="notes-content"></div>
+        <div class="print-buttons">
+            <button id="print-notes-btn">Print / Save Notes as PDF</button>
+        </div>
+    </div>
+
+    <!-- TIMER + PAUSE/RESUME BUTTON -->
+    <div id="timer-container">
+        <div id="timer">Time left: --:--</div>
+        <button id="pause-resume-btn">Pause Timer</button>
+    </div>
+
+    <script>
+        /* =========================================
+           1. QUIZ DATA
+           ========================================= */
+
+        const quizData = [
+            {
+                id: 1,
+                question: `When was the new Enfield Rifle with greased cartridges introduced in the British Indian Army?`,
+                options: {
+                    a: "November, 1856",
+                    b: "December, 1856",
+                    c: "January, 1857",
+                    d: "February, 1857"
+                },
+                correctOption: "b",
+                exam: "47th B.P.S.C. (Pre) 2005",
+                explanation: `The Company decided to use new Enfield Rifle instead of old Brown Bess gun in December, 1856. The training for the use of this rifle was organized in Dum Dum, Ambala, and Sialkot. The rifle needed an extraordinary kind of loading of a cartridge in the magazine and hence the soldiers while in the ensuing fight, had to bite off the outer covering of the cartridge while loading it down into the rifle’s muzzle. The cartridge was rumoured to have been greased with animal fat (Pig fat and Cow fat). Army Commanders refused rumours without any cross-checking, but the soldiers were of the view that this was an intentional act of the British to besmirch their religion. This became the immediate cause first Independence Struggle of India in 1857.`
+            },
+            {
+                id: 2,
+                question: `The immediate cause of India’s first war of independence was:`,
+                options: {
+                    a: "Doctrine of Lapse by Lord Dalhousie",
+                    b: "Suspicion about British interference in religion",
+                    c: "Military discontent",
+                    d: "Economic exploitation of India"
+                },
+                correctOption: "b",
+                exam: "R.A.S./R.T.S. (Pre) 1993",
+                explanation: `See the explanation of the above question.`
+            },
+            {
+                id: 3,
+                question: `Mangal Pandey incident took place at:`,
+                options: {
+                    a: "Meerut",
+                    b: "Barrackpore",
+                    c: "Ambala",
+                    d: "Lucknow"
+                },
+                correctOption: "b",
+                exam: "Uttarakhand P.C.S. (Mains) 2002",
+                explanation: `Soldiers denied to use a cartridge of animal fat in Barrackpore 29 March, 1857 and Mangal Pandey murdered his Sergeant Major's adjutant. British dissolved 34th Bengal Native Infantry Regiment and punished the culprits.`
+            },
+            {
+                id: 4,
+                question: `With which uprising is Mangal Pandey associated?`,
+                options: {
+                    a: "Barrackpur",
+                    b: "Meerut",
+                    c: "Delhi",
+                    d: "None of the above"
+                },
+                correctOption: "a",
+                exam: "U.P. P.C.S. (Pre) 2010",
+                explanation: `See the explanation of the above question.`
+            },
+            {
+                id: 5,
+                question: `Mangal Pandey was the sepoy of –`,
+                options: {
+                    a: "19th Native Infantry",
+                    b: "25th Native Infantry",
+                    c: "49th Native Infantry",
+                    d: "94th Native Infantry"
+                },
+                correctOption: "a",
+                exam: "U.P.P.S.C. (R.I.) 2014",
+                explanation: `Mangal Pandey was a sepoy of 34th Bengal Native Infantry.`
+            },
+            {
+                id: 6,
+                question: `Who among the following was bestowed with the title of Saheb-e-Alam Bahadur by Bahadur Shah during the uprising of 1857?`,
+                options: {
+                    a: "Azimullah",
+                    b: "Birjis Qadr",
+                    c: "Bakht Khan",
+                    d: "Hasan Khan"
+                },
+                correctOption: "c",
+                exam: "U.P. R.O./A.R.O. (Pre) 2016",
+                explanation: `Bakht Khan’s superior abilities quickly became evident and the emperor Bahadur Shah Zafar gave him actual authority and title of ‘Saheb-e-Alam- Bahadur.`
+            },
+            {
+                id: 7,
+                question: `What was the main cause of 1857 revolt?`,
+                options: {
+                    a: "Public Outrage",
+                    b: "Military discontent",
+                    c: "Management of Christian Missionaries",
+                    d: "Policy of the British Empire"
+                },
+                correctOption: "d",
+                exam: "U.P. P.C.S. (Pre) 1990",
+                explanation: `The Indian Rebellion of 1857 had diverse political, economic, military, religious and social causes.
+The sepoys, a generic term used for native Indian soldiers of the Bengal Army, had their own list of grievances against the British East India Company administration. The spark that led to the mutiny was the issue of new gunpowder cartridges for Enfield rifle in January 1857. There was a widespread belief that the cartridges contained cow or pig fat. This insulted both the Hindu and Muslim religious practices. Underlying grievances like taxation and land annexations by East India company were ignited by the sepoy mutineers, and within weeks dozens of units of Indian army joined the peasant army in widespread rebellion. The old aristocracy, both Muslim and Hindu, who were seeing their power being steadily eroded by the East India company also rebelled against British rule.`
+            },
+            {
+                id: 8,
+                question: `Who was the Correspondent of the Newspaper 'Times' published from London in 1857 wrote that "Nobody in the North India looks at white man's car with friendly view"?`,
+                options: {
+                    a: "W.H. Russell",
+                    b: "Robert Peel",
+                    c: "Gladaston",
+                    d: "Palmerston"
+                },
+                correctOption: "a",
+                exam: "M.P.P.C.S. (Pre.) 2020",
+                explanation: `Sir William Howard Russell was the correspondent of the newspaper 'The Times' published from London in 1857 which wrote that "Nobody in the North India looks at white man's car with friendly view" Russell was an Irish reporter with the Times who was sent to India by The Times to report on the 1857 mutiny.`
+            },
+            {
+                id: 9,
+                question: `The first war of Independence (1857) started from:`,
+                options: {
+                    a: "Lucknow",
+                    b: "Jhansi",
+                    c: "Meerut",
+                    d: "Kanpur"
+                },
+                correctOption: "c",
+                exam: "U.P.P.C.S. (Pre) 1994\nU.P.P.C.S. (Pre) 1990",
+                explanation: `The first war of Independence was started from Meerut. Sepoys refused to use the new rifle cartridges and revolted openly. They left Meerut and moved to Delhi. Major General William Hewitt had not tried to stop this rebellion. Lieutenant General George Dobson Preical Willoughby resisted, but he was defeated. Mughal Emperor Bahadur Shah Zafar was declared Emperor of India. The success of Delhi revolt sensitized many parts of India and revolt spread over to the areas of Oudh, Rohilkhand, Western Bihar, etc.`
+            },
+            {
+                id: 10,
+                question: `Where from the Revolution of 1857 Started first?`,
+                options: {
+                    a: "Lucknow",
+                    b: "Allahabad",
+                    c: "Jhansi",
+                    d: "Meerut",
+                    e: "None of the above/More than one of the above"
+                },
+                correctOption: "d",
+                exam: "66th B.P.S.C. Re-Exam (Pre) 2020",
+                explanation: `See the explanation of the above question.`
+            },
+            {
+                id: 11,
+                question: `The first event relating to the war of Independence of 1857 was –`,
+                options: {
+                    a: "Kanpur’s Revolt and taking over the leadership by Nana Saheb.",
+                    b: "Begum Hazrat Mahal’s leadership of Oudh.",
+                    c: "Marching of Sepoys to Delhi’s Red Fort.",
+                    d: "Revolt by Rani of Jhansi"
+                },
+                correctOption: "c",
+                exam: "U.P.P.C.S. (Mains) 2008",
+                explanation: `Marching of Sepoys to Delhi’s Red Fort was the first event relating to the war of independence of 1857. Nana Saheb revolted on 5 June, 1857 in Kanpur. Begum Hazrat Mahal had led rebellions in Oudh on 30th May, 1857. Revolt of Rani of Jhansi, Laxmi Bai, started in June, 1857 and ended after her martyrdom on 18 June, 1858.`
+            },
+            {
+                id: 12,
+                question: `Which of the following was not a reason for making the sepoys of the East India Company rebellious?`,
+                options: {
+                    a: "The efforts of the officers of the company to spread Christianity",
+                    b: "The order to the sepoys to travel on ships",
+                    c: "The stoppage of Bhatta",
+                    d: "The inefficiency of the officers",
+                    e: "None of the above/More than one of the above"
+                },
+                correctOption: "d",
+                exam: "B.P.S.C. (Pre) 2018",
+                explanation: `The inefficiency of the officers was not a cause for the Sepoy Mutiny. The Indian Rebellion of 1857 occurred as a result of an accumulation of factors over time, rather than any single event, like an effort by officers to spread Christianity among the soldiers led to interference in the religious matters of the people. The order of the Company to the sepoys to travel on a ship was another reason as in Hinduism it was believed that travelling by sea could deprive them of their religious status of being a Hindu. A more immediate cause of the sepoy’s dissatisfaction was the recent order that they would not be given the foreign service allowance (Bhatta/Batta) when serving in Sindh or Punjab and rumours of the use of animal fat in the cartridges of the New Enfield Rifle.`
+            },
+            {
+                id: 13,
+                question: `The symbol of 1857 independence struggle was –`,
+                options: {
+                    a: "Lotus and Chapatis",
+                    b: "Eagle",
+                    c: "Scarf",
+                    d: "Two sword"
+                },
+                correctOption: "a",
+                exam: "M.P.P.C.S. (Pre) 1990",
+                explanation: `The symbol of 1857 Independence struggle were Chapatis (bread) and Lotus. A class of historians considers that this mutiny was a wide and well-planned conspiracy. They mentioned the reach of Chapatis and Lotus in remote villages of North India and prophets, hermit and plays of Madaris to prove that fact.`
+            },
+            {
+                id: 14,
+                question: `Which one of the following centres of the uprising of 1857 was recaptured by the English?`,
+                options: {
+                    a: "Jhansi",
+                    b: "Meerut",
+                    c: "Delhi",
+                    d: "Kanpur"
+                },
+                correctOption: "c",
+                exam: "U.P.P.C.S. (Mains) 2015",
+                explanation: `The first expression of organized resistance was the Revolt of 1857. It began as a revolt of the Sepoys of the Company’s army but eventually secured the participation of the masses. The Meerut Mutiny marked the beginning of the Revolt of 1857. The Indian sepoys in Meerut murdered their British officers and broke the jail. On May 10, they marched to Delhi. In Delhi, the mutineers were joined by the Delhi sepoys, and the city came under their control. Next day, on 11th May, the sepoys proclaimed Bahadur Shah Zafar as the Emperor of Hindustan. But Bahadur Shah was old, and he could not give able leadership to the sepoys. The occupation of Delhi was short-lived. In May 1857 the Battle of Shamli took place between the forces of Hazi Imdadullah and the British. The Sikhs and Pathans of the Punjab and North-West Frontier Province supported the British and helped to recapture Delhi on 20th September, 1857.`
+            },
+            {
+                id: 15,
+                question: `The birthplace of Maharani Laxmi Bai, the heroine of the 1857 freedom struggle, is:`,
+                options: {
+                    a: "Agra",
+                    b: "Jhansi",
+                    c: "Varanasi",
+                    d: "Vrindaban"
+                },
+                correctOption: "c",
+                exam: "U.P.P.C.S. (Spl) (Pre) 2008",
+                explanation: `Rani Laxmibai, originally known as Manikarnika, was born on 19 November, 1835 in Golghar, Varanasi. His father Moropant went to the court of King Gangadhar Rao. She was married to Maharaja Gangadhar Rao of Jhansi at the age of 14.`
+            },
+            {
+                id: 16,
+                question: `Who among the following was the leader of the revolt during 1857 at Bareilly?`,
+                options: {
+                    a: "Khan Bahadur",
+                    b: "Kunwar Singh",
+                    c: "Maulvi Ahmad Shah",
+                    d: "Virzis Kadir"
+                },
+                correctOption: "a",
+                exam: "U.P.P.C.S. (Pre) 1998",
+                explanation: `Khan Bahadur led the revolt of 1857 in Bareilly. He organized an army of 40 thousand soldiers and battled hard with Britishers. Bahadur Shah II appointed him Viceroy. He treated Hindus and Muslims equally and reflected his able administration.`
+            },
+            {
+                id: 17,
+                question: `Who was the leader of rebellion in Bareilly, Uttar Pradesh during 1857?`,
+                options: {
+                    a: "Nana Saheb",
+                    b: "Khan Bahadur Khan",
+                    c: "Hazarat Mahal",
+                    d: "Kunwar Singh"
+                },
+                correctOption: "b",
+                exam: "U.P.P.C.S. (Pre) 2023",
+                explanation: `See the explanation of the above question.`
+            },
+            {
+                id: 18,
+                question: `Where is the Samadhi of Maharani Laxmibai situated?`,
+                options: {
+                    a: "Mandla",
+                    b: "Mandu",
+                    c: "Jabalpur",
+                    d: "Gwalior"
+                },
+                correctOption: "d",
+                exam: "M.P.P.C.S. (Pre) 2013",
+                explanation: `The birthplace of Maharani Laxmibai was Varanasi while the mausoleum of Laxmibai is situated in Gwalior.`
+            },
+            {
+                id: 19,
+                question: `Where was Jhansi Ki Rani Laxmibai died?`,
+                options: {
+                    a: "Lucknow",
+                    b: "Kanpur",
+                    c: "Gwalior",
+                    d: "Jhansi",
+                    e: "None of the above/More than one of the above"
+                },
+                correctOption: "c",
+                exam: "67th B.P.S.C. (Pre) (Re. Exam) 2022",
+                explanation: `See the explanation of the above question.`
+            },
+            {
+                id: 20,
+                question: `Maharani Laxmibai had combated in last battle against–`,
+                options: {
+                    a: "Hugh Rose",
+                    b: "Guff",
+                    c: "Niel",
+                    d: "Havelock"
+                },
+                correctOption: "a",
+                exam: "M.P.P.C.S. (Pre) 1992",
+                explanation: `Rani Laxmibai was the widow of the last Jhansi king Raja Gangadhar Rao. Dalhousie annexed Jhansi with his ‘Doctrine of Lapse’ in 1854. The revolt started under the leadership of Rani Laxmibai in June, 1857. Rani departed for Gwalior after the decline of Jhansi. She achieved Martyrdom on 18 June, 1858 after a long battle. Hugh Rose said on the death of Rani “Sleeping Beauty is the only man among all Indian rebel leaders”.`
+            },
+            {
+                id: 21,
+                question: `The revolt of 1857 at Lucknow was led by :`,
+                options: {
+                    a: "Begum of Oudh",
+                    b: "Tatya Tope",
+                    c: "Rani Lakshmibai",
+                    d: "Nana Saheb"
+                },
+                correctOption: "a",
+                exam: "48th to 52nd B.P.S.C. (Pre) 2008",
+                explanation: `The revolt was started on 30 May, 1857 in Oudh (Lucknow). The mutiny was led by Begum Hazrat Mahal. She crowned her minor son Birjis Qadir as royal heir and took charge of the affairs of the state of Oudh. Later, Colin Campbell reannexed Lucknow with the help of the Gorkha regiment on 21 March, 1858.`
+            },
+            {
+                id: 22,
+                question: `The revolutionary woman who led the revolution of 1857 in Oudh was`,
+                options: {
+                    a: "Lakshmibai",
+                    b: "Ahilyabai",
+                    c: "Aruna Asaf Ali",
+                    d: "Begum Hazrat Mahal"
+                },
+                correctOption: "d",
+                exam: "Uttarakhand P.C.S. (Pre) 2010",
+                explanation: `See the explanation of the above question.`
+            },
+            {
+                id: 23,
+                question: `Who was the leader of 1857 struggle for freedom in Lucknow?`,
+                options: {
+                    a: "Zeenat Mahal",
+                    b: "Nana Saheb",
+                    c: "Hazrat Mahal",
+                    d: "Tatya Tope"
+                },
+                correctOption: "c",
+                exam: "U.P.P.C.S. (Re. Exam) (Pre) 2015",
+                explanation: `See the explanation of the above question.`
+            },
+            {
+                id: 24,
+                question: `Who amongst the following was the leader of the 1857 uprising at Allahabad?`,
+                options: {
+                    a: "Nana Saheb",
+                    b: "Azimullah",
+                    c: "Tatya Tope",
+                    d: "Maulvi Liyaqat Ali"
+                },
+                correctOption: "d",
+                exam: "U.P.P.C.S. (Mains) 2015",
+                explanation: `Maulvi Liyaqat Ali was a Muslim religious leader from Allahabad (Prayagraj), in Uttar Pradesh. He was one of the leaders of the revolt against the British in 1857. One of the most prominent leaders of the 1857 Sepoy Mutiny, Maulvi Liyaqat Ali belonged to Village Mahgaon in Chail Pargana of District Allahabad (Prayagraj). He was a religious teacher, an upright, pious Muslim and a man of great courage and bravery. Maulvi captured Khusro Bagh and declared the Independence of India. Khusro Bagh became the headquarters of the sepoys under Maulvi Liyaqat Ali who took charge as the Governor of liberated Allahabad. Later this mutiny was suppressed by General Neil.`
+            },
+            {
+                id: 25,
+                question: `The largest number of soldiers participated in the Struggle of 1857 came from –`,
+                options: {
+                    a: "Bengal",
+                    b: "Oudh",
+                    c: "Bihar",
+                    d: "Rajasthan"
+                },
+                correctOption: "b",
+                exam: "U.P. Lower Sub. (Pre) 2015",
+                explanation: `The maximum number of sepoys who participated in the revolt of 1857 were from Oudh. One member of each family joined the revolt. More than 75,000 sepoys were only from Oudh.`
+            },
+            {
+                id: 26,
+                question: `Who was ‘commander-in-chief’ of Nana saheb?`,
+                options: {
+                    a: "Azimullah",
+                    b: "Birjis Qadir",
+                    c: "Tatya Tope",
+                    d: "None of the above"
+                },
+                correctOption: "c",
+                exam: "U.P. Lower Sub. (Spl) (Pre) 2008",
+                explanation: `The Independence was proclaimed with the acceptance of Nana Saheb as Peshwa on 5 June, 1857 in Kanpur. Nana Saheb was whole-heartedly supported by commander-in-chief Tatya Tope.`
+            },
+            {
+                id: 27,
+                question: `Azimullah Khan was an advisor to`,
+                options: {
+                    a: "Nana Saheb",
+                    b: "Tatya Tope",
+                    c: "Rani Laxmi Bai",
+                    d: "Kunwar Singh"
+                },
+                correctOption: "a",
+                exam: "Uttarakhand P.C.S. (Pre) 2012",
+                explanation: `Azimullah Khan was an advisor to Nana Saheb. He worked as secretary of Nana Saheb. He is also known as “Krantidoot”.`
+            },
+            {
+                id: 28,
+                question: `With reference to the ‘revolt of 1857’ who of the following was betrayed by ‘friend’ captured and put to death by the British?`,
+                options: {
+                    a: "Nana Saheb",
+                    b: "Kunwar Singh",
+                    c: "Khan Bahadur Khan",
+                    d: "Tatya Tope"
+                },
+                correctOption: "d",
+                exam: "I.A.S. (Pre) 2006",
+                explanation: `Ramachandra Pandurang, known as Tatya Tope, was an able leader of the great uprising of 1857. He was a personal adherent of Nana Saheb of Kanpur. He progressed with the Gwalior contingent after the British reoccupation of Kanpur and forced Lieutenant General Charles Ash Windham to retreat from Kanpur. Later on, he came to the rescue of Rani Laxmi Bai. However, he was defeated by General Napier’s troops and was executed by the British Government (after he was captured in the forest of paron due to betrayal of his friend Man singh) at Shivpuri on 18th April 1859. One of the greatest heroes of the Great Uprising of 1857, Tatya Tope was born in 1814 at Yeola in Maharashtra. He was the only child of Pandurang and his wife, Rukhambai. Having been brought up in Bithoor, he came into contact with Nana Saheb Peshwa. He was a great admirer of Nana Saheb and was ready to sacrifice his life for him. Tatya Tope was the only person who witnessed the rebellion since the Kanpur revolt until his end on 18th April 1859.`
+            },
+            {
+                id: 29,
+                question: `The real name of which one of the following leaders of 1857 was ‘Ram Chandra Pandurang’?`,
+                options: {
+                    a: "Kunwar Singh",
+                    b: "Tatya Tope",
+                    c: "Nana Saheb",
+                    d: "Mangal Pandey"
+                },
+                correctOption: "b",
+                exam: "U.P.P.C.S. (Pre) 2011\nU.P. U.D.A./L.D.A. (Pre) 2010",
+                explanation: `See the explanation of the above question.`
+            },
+            {
+                id: 30,
+                question: `Which one of the following places did Kunwar Singh, a prominent leader of the Revolt of 1857 belong to?`,
+                options: {
+                    a: "Bihar",
+                    b: "Madhya Pradesh",
+                    c: "Rajasthan",
+                    d: "Uttar Pradesh"
+                },
+                correctOption: "a",
+                exam: "I.A.S. (Pre) 2005",
+                explanation: `Kunwar Singh was one of the most important freedom fighters in the Sepoy Mutiny of 1857. Kunwar Singh was born in Jagdishpur in Shahabad (now in Bhojpur District) of Bihar. He belonged to Arrah in Bihar during the mutiny. When the people of all parts of India rose against British authority in 1857, Babu Kunwar Singh was nearly eighty years old. At that age, he fought against the English East India Company. Despite his age and failing health, Kunwar Singh plunged into the thick of it and battled against the British forces with grim determination and undaunted courage. In Bihar, Kunwar Singh was the Leader against the British. He assumed command of the soldiers who had revolted at Danapur on 25th July 1857. Two days later he occupied Arrah, the district headquarters. Major Vincent Eyre relieved the town in August 1857, defeated Kunwar Singh’s force and destroyed Jagdishpur. Kunwar Singh left his ancestral village and reached Lucknow in December 1857. In March 1858, he occupied Azamgarh. However, he had to leave the place soon. He was pursued by Brigadier Douglas, and he retreated towards his home in Bihar. On 23 April 1858, Kunwar Singh had a victory near Jagdishpur over the force led by Captain Le Grand, but on 26 April 1858, he died in his village. The mantle of the old chief now fell on his brother Amar Singh who, despite heavy odds, continued the struggle and for a considerable time ran a parallel government in the then district of Shahabad. In October 1859 Amar Singh joined the rebel leaders in the Nepal Terai.`
+            },
+            {
+                id: 31,
+                question: `One of the leaders of the Revolt of 1857 AD, Kunwar Singh was related to which place?`,
+                options: {
+                    a: "Gwalior",
+                    b: "Jagdishpur",
+                    c: "Jhansi",
+                    d: "Meerut",
+                    e: "None of the above/More than one of the above"
+                },
+                correctOption: "b",
+                exam: "67th B.P.S.C. (Pre) 2022",
+                explanation: `See the explanation of the above question.`
+            },
+            {
+                id: 32,
+                question: `Where did Kunwar Singh join the Rebellion of 1857 against the British?`,
+                options: {
+                    a: "Arrah",
+                    b: "Patna",
+                    c: "Bettiah",
+                    d: "Varanasi",
+                    e: "None of the above/More than one of the above"
+                },
+                correctOption: "a",
+                exam: "64th B.P.S.C. (Pre) 2018",
+                explanation: `According to BPSC the correct answer is option (b) which is wrong. For the detailed explanation refer to the above question.`
+            },
+            {
+                id: 33,
+                question: `Who was the leader of revolutionaries in Bihar during the Revolt of 1857?`,
+                options: {
+                    a: "Namdar Khan",
+                    b: "Babu Kunwar Singh",
+                    c: "Birsa Munda",
+                    d: "Shankar Shah",
+                    e: "None of the above/More than one of the above"
+                },
+                correctOption: "b",
+                exam: "60th to 62nd B.P.S.C. (Pre) 2016",
+                explanation: `See the explanation of the above question.`
+            },
+            {
+                id: 34,
+                question: `Who led the 1857 Revolt in Bihar?`,
+                options: {
+                    a: "Babu Amar Singh",
+                    b: "Hare Krishna Singh",
+                    c: "Kunwar Singh",
+                    d: "Raja Shahzadha Singh",
+                    e: "None of the above/More than one of the above"
+                },
+                correctOption: "c",
+                exam: "65th B.P.S.C. (Pre) 2019",
+                explanation: `See the explanation of the above question.`
+            },
+            {
+                id: 35,
+                question: `Kunwar Singh led the revolt of 1857 in –`,
+                options: {
+                    a: "Punjab",
+                    b: "Bengal",
+                    c: "Bihar",
+                    d: "Maharashtra"
+                },
+                correctOption: "c",
+                exam: "45th B.P.S.C. (Pre) 2001",
+                explanation: `See the explanation of the above question.`
+            },
+            {
+                id: 36,
+                question: `Who led the Revolt of 1857 in Bihar?`,
+                options: {
+                    a: "Khan Bahadur Khan",
+                    b: "Kunwar Singh",
+                    c: "Tatya Tope",
+                    d: "Rani Ramkunvari"
+                },
+                correctOption: "b",
+                exam: "48th to 52nd B.P.S.C. (Pre) 2008\n42nd B.P.S.C. (Pre) 1997",
+                explanation: `See the explanation of the above question`
+            },
+            {
+                id: 37,
+                question: `Who spearheaded the 1857 Revolt in Bihar ?`,
+                options: {
+                    a: "Nana Saheb",
+                    b: "Tatya Tope",
+                    c: "Kunwar Singh",
+                    d: "Maulavi Ahmadullah",
+                    e: "None of the above/More than one of the above"
+                },
+                correctOption: "c",
+                exam: "",
+                explanation: `(No answer given in image segment; question ends here on page — no “Ans.” line provided in this scan.)`
+            },
+            {
+                id: 38,
+                question: `Which person of Jagdishpur took the lead of revolutionaries during the revolt of 1857 A.D.`,
+                options: {
+                    a: "Kunwar Singh",
+                    b: "Chandra Shekhar",
+                    c: "Tirath Singh",
+                    d: "Ram Singh"
+                },
+                correctOption: "a",
+                exam: "48th to 52nd B.P.S.C. (Pre) 2008",
+                explanation: `See the explanation of the above question.`
+            },
+            {
+                id: 39,
+                question: `The king of Jagdishpur was`,
+                options: {
+                    a: "Nana Saheb",
+                    b: "Tatya Tope",
+                    c: "Lakshmi Bai",
+                    d: "Kunwar Singh"
+                },
+                correctOption: "d",
+                exam: "43rd B.P.S.C. (Pre) 1999",
+                explanation: `See the explanation of the above question.`
+            },
+            {
+                id: 40,
+                question: `The Mutiny of 1857 at Patna was led by a dynamic old person known as`,
+                options: {
+                    a: "Hyder Ali Khan",
+                    b: "Rajput Kunwar Singh",
+                    c: "Judhar Singh",
+                    d: "Kusal Singh"
+                },
+                correctOption: "b",
+                exam: "43rd B.P.S.C. (Pre) 1999",
+                explanation: `The mutiny of 1857 at Patna (Danapur) was led by Zamindar Kunwar Singh. He lost his Zamindari due to British policies, as a result, he participated in 1857 revolt.`
+            },
+            {
+                id: 41,
+                question: `Who among the following was the leader of the revolution of 1857 in Assam?`,
+                options: {
+                    a: "Diwan Maniram Dutta",
+                    b: "Kandarpehswar Singh",
+                    c: "Purandar Singh",
+                    d: "Piali Barua"
+                },
+                correctOption: "a",
+                exam: "U.P.P.C.S. (Mains) 2007",
+                explanation: `Diwan Maniram Dutta was an Assamese nobleman who started a revolt in 1857 with the announcement of last King’s Grandson Kandpehshwar Singh as king in Assam. Later Maniram was hanged by the British for conspiring against them.`
+            },
+            {
+                id: 42,
+                question: `The centre of 1857 revolt in Bihar from 15th July, 1857 20th January, 1858 was`,
+                options: {
+                    a: "Rampur",
+                    b: "Hamirpur",
+                    c: "Dheerpur",
+                    d: "Jagdisghpur"
+                },
+                correctOption: "d",
+                exam: "43rd B.P.S.C. (Pre) 1999",
+                explanation: `The centre of 1857 revolt was Jagdishpur in Bihar where Zamindar Kunwar Singh led and established his own government by deposing the British the Goverment. Bihar revolt was suppressed by Commissioner of Patna division William Taylor and Major Vincent Eyer.`
+            },
+            {
+                id: 43,
+                question: `Who defeated the joint army of British and Jodhpur during the revolt of 1857:`,
+                options: {
+                    a: "Tatya Tope",
+                    b: "Nawab Vazeer Khan of Tonk",
+                    c: "Maharaja Ram Singh",
+                    d: "Thakur Kushal Singh of Auwa"
+                },
+                correctOption: "d",
+                exam: "R.A.S./R.T.S. (Pre) 1993",
+                explanation: `Thakur Kushal Singh of Auwa defeated the joint army of British and Jodhpur during the revolt of 1857.`
+            },
+            {
+                id: 44,
+                question: `Which amongst the following place was not a centre of the revolution of 1857?`,
+                options: {
+                    a: "Ajmer",
+                    b: "Jaipur",
+                    c: "Neemuch",
+                    d: "Auwa"
+                },
+                correctOption: "b",
+                exam: "R.A.S./R.T.S.(Pre) 2012",
+                explanation: `Jaipur was not a centre of the revolution in 1857. Other places were related to Revolt of 1857.`
+            },
+            {
+                id: 45,
+                question: `Who of the following had struggled against Britishers in 1857?`,
+                options: {
+                    a: "Chandrasekhar Azad",
+                    b: "Ramprasad Bilsimil",
+                    c: "Saadat Khan",
+                    d: "Makhan Lal Chaturvedi"
+                },
+                correctOption: "c",
+                exam: "M.P.P.C.S. (Pre) 2000",
+                explanation: `Saadat Ali Khan had struggled against Britishers in the revolt of 1857 at Indore.`
+            },
+            {
+                id: 46,
+                question: `Who of the following was the bitterest enemy of the British during the Revolt of 1857?`,
+                options: {
+                    a: "Maulavi Ahmadullah Shah",
+                    b: "Maulavi Imadadullah",
+                    c: "Maulana Fazi-i-Haq Khairabadi",
+                    d: "Nawab Liaquat Ali"
+                },
+                correctOption: "a",
+                exam: "45th B.P.S.C. (Pre) 2001",
+                explanation: `Maulavi Ahmadullah Shah was the bitterest enemy of Britishers. He led the 1857 revolt in Faizabad (Now Ayodhya). He was basically from Chinapattan (Madras), but later he resided in Faizabad (Now Ayodhya). The British considered him a worthy enemy and a great warrior in the following words “as a man of great abilities of undaunted courage, of stern determination and by far the best soldier among the rebels”. The British government announced a reward of Rs. 50000 for his arrest.`
+            },
+            {
+                id: 47,
+                question: `Which of the following brave from Bhopal led the main movement and sacrificed his life during the first struggle for Independence in 1857?`,
+                options: {
+                    a: "Fazil Mohammad Khan",
+                    b: "Sheikh Ramzan",
+                    c: "Dost Mohammad Khan",
+                    d: "Habibulla Khan"
+                },
+                correctOption: "a",
+                exam: "M.P.P.C.S. (Pre) 2019",
+                explanation: `Nawab Fazil Mohammed Khan, from Bhopal, led the main movement and sacrificed his life during the first Struggle for Independence in 1857.`
+            },
+            {
+                id: 48,
+                question: `The Revolt of 1857 was witnessed by the poet –`,
+                options: {
+                    a: "Mir Taqi Mir",
+                    b: "Zauq",
+                    c: "Ghalib",
+                    d: "Iqbal"
+                },
+                correctOption: "c",
+                exam: "45th B.P.S.C. (Pre) 2001",
+                explanation: `Mirza Ghalib was a poet who witnessed the revolt of 1857.`
+            },
+            {
+                id: 49,
+                question: `The original residence of Eminent Urdu Poet Mirza Ghalib was?`,
+                options: {
+                    a: "Agra",
+                    b: "Delhi",
+                    c: "Lahore",
+                    d: "Lucknow"
+                },
+                correctOption: "a",
+                exam: "U.P. Lower Sub. (Pre) 2002",
+                explanation: `Famous Urdu Poet Mirza Ghalib was born on December 27, 1797 in Agra and died in Delhi on February 15, 1869.`
+            },
+            {
+                id: 50,
+                question: `Who among the following was NOT associated with the revolt of 1857?`,
+                options: {
+                    a: "Tatya Tope",
+                    b: "Rani Laxmibai",
+                    c: "Bahadurshah Jafar",
+                    d: "Bhagat Singh"
+                },
+                correctOption: "d",
+                exam: "M.P.P.C.S. (Pre) 2000",
+                explanation: `Bhagat Singh was not related to the revolt of 1857 while Rani Laxmibai, Bahadur Shah Zafar and Tatya Tope participated in the revolt of 1857 as rebel leaders.`
+            },
+            {
+                id: 51,
+                question: `Who among the following was not related to the Revolt of 1857?`,
+                options: {
+                    a: "Begum Hazrat Mahal",
+                    b: "Kunwar Singh",
+                    c: "Uddham Singh",
+                    d: "Maulavi Ahmadullah"
+                },
+                correctOption: "c",
+                exam: "U.P.P.C.S. (Pre) 1996",
+                explanation: `Uddham Singh was not related to the Revolt of 1857. He was a revolutionary in Punjab. Kunwar Singh, Begum Hazrat Mahal and Maulavi Ahmadullah led the revolt of 1857 in Arra (Bihar), Lucknow (Oudh) and Faizabad (Ayodhya) respectively.`
+            },
+            {
+                id: 52,
+                question: `Which dynasty supported British maximum during the 1857 Freedom Movement?`,
+                options: {
+                    a: "Scindias of Gwalior",
+                    b: "Holkars of Indore",
+                    c: "Bhonsles of Nagpur",
+                    d: "Lodhis of Ramgarh"
+                },
+                correctOption: "a",
+                exam: "M.P.P.C.S. (Pre) 2010",
+                explanation: `Many, like the Scindias of Gwalior, the Nizams of Hyderabad and Holkars of Indore gave active support to the British during the 1857 revolt. Many educated and westernized Indians also did not support the revolt of 1857. That time, Lord Canning said, “If Scindia joins the rebels, I will pack off tomorrow.” European Historian greatly praised Sir Dinkar Rao, the Minister of Gwalior.`
+            },
+            {
+                id: 53,
+                question: `The educated middle class in India:`,
+                options: {
+                    a: "Opposed the revolt of 1857",
+                    b: "Supported the revolt of 1857",
+                    c: "Remained neutral to the revolt of 1857",
+                    d: "Fought against native rulers"
+                },
+                correctOption: "c",
+                exam: "I.A.S. (Pre) 1998",
+                explanation: `The educated middle class did not participate in the revolt of 1857, which was one of the major reasons for the failure of the 1857 mutiny. Educated Indians wanted to change India as a progressive state and the fact embedded in their mind was that Britishers would make this progress possible. But later on, they came to know about the cruel strategy of the British behind this.`
+            },
+            {
+                id: 54,
+                question: `Which of the following groups did not participate in the revolt of 1857?
+
+Agricultural Labour
+
+Sahukar
+
+Farmers
+
+Landlords
+
+Select your answer from the following codes:`,
+                options: {
+                    a: "Only 1",
+                    b: "1 and 2",
+                    c: "Only 2",
+                    d: "2 and 4"
+                },
+                correctOption: "d",
+                exam: "40th B.P.S.C. (Pre) 1995",
+                explanation: `The revolt of 1857 was widespread and this rebellion had the popular support of the public. But it was suppressed to a greater extent. It was spread in limited areas. The entire South India, Punjab and the territory towards its north and west, Rajasthan, Gujarat and Madhya Pradesh remained out from the revolt. Many native rulers like the rulers of Patiala, Jind, Gwalior, Hyderabad, and the Sikhs of Punjab helped the British in suppressing the revolt by all possible means. The money lenders and merchants were also against the war as it was against their economic benefits. The educated Indians and the middle class also did not support the revolt. On the contrary, their feelings were against it.`
+            },
+            {
+                id: 55,
+                question: `Who among the following did not rebel against the British East India Company’s control over them?`,
+                options: {
+                    a: "Raja of Vijayanagaram",
+                    b: "Nizam of Hyderabad",
+                    c: "Polygar of Tamil Nadu",
+                    d: "Dewan Velu Thampi of Travancore",
+                    e: "None of the above/More than one of the above"
+                },
+                correctOption: "b",
+                exam: "B.P.S.C. (Pre) 2018",
+                explanation: `All of the above (Raja of Vijayanagaram, Polygar of Tamil Nadu and Diwan Velu Thampi of Travancore) except the Nizam of Hyderabad rebelled against the British East India Company’s control over them.`
+            },
+            {
+                id: 56,
+                question: `Which one of the following territories was not affected by the Revolt of 1857?`,
+                options: {
+                    a: "Jhansi",
+                    b: "Chittor",
+                    c: "Jagdishpur",
+                    d: "Lucknow"
+                },
+                correctOption: "b",
+                exam: "Uttarakhand P.C.S. (Mains) 2006\nI.A.S. (Pre) 2005",
+                explanation: `Chittor was the territory that was not affected by the Revolt of 1857. Jhansi, Jagdishpur, and Lucknow were the prominent places of the revolt of 1857. These centres were led by Rani Laxmibai, Kunwar Singh, and Begum Hazrat Mahal respectively.`
+            },
+            {
+                id: 57,
+                question: `Which part of Bihar was unaffected with the revolt of 1857?
+
+(i) Danapur
+(ii) Patna
+(iii) Arrah
+(iv) Muzaffarpur
+(v) Munger
+
+Choose the correct answer from the code given below:`,
+                options: {
+                    a: "iv and v",
+                    b: "Only v",
+                    c: "Only iv",
+                    d: "iii, iv and v"
+                },
+                correctOption: "b",
+                exam: "41st B.P.S.C. (Pre) 1996",
+                explanation: `Arrah, Danapur, Gaya, Patna, Muzaffarpur and Shahabad were major centres of revolt in Bihar while the region of Munger was unaffected from the revolt of 1857.`
+            },
+            {
+                id: 58,
+                question: `Match List-I (leaders of the revolt of 1857) with List-II (their areas of operation)
+
+List-I
+A. Bakht Khan –
+B. Maulvi Ahmadulla –
+C. Kunwar Singh –
+D. Nanasahab –
+
+List-II
+1. Awadh
+2. Kanpur
+3. Arrah
+4. Delhi
+
+Code:`,
+                options: {
+                    a: "A-3, B-1, C-2, D-4",
+                    b: "A-3, B-2, C-4, D-1",
+                    c: "A-4, B-1, C-3, D-2",
+                    d: "A-4, B-3, C-1, D-2",
+                    e: "A-2, B-4, C-1, D-3"
+                },
+                correctOption: "c",
+                exam: "Chhattisgarh P.C.S. (Pre) 2014",
+                explanation: `The correctly matched list is as follows–
+List–I — List–II
+Bakht Khan – Delhi
+Maulvi Ahmadulla – Awadh
+Kunwar Singh – Arrah
+Nanasahab – Kanpur`
+            },
+            {
+                id: 59,
+                question: `Match List I with the List II and select the correct answer by using the code given below:
+
+List–I
+A. Jhansi
+B. Lucknow
+C. Kanpur
+D. Faizabad
+
+List–II
+1. Maulvi Ahmad Shah
+2. Azimullah Khan
+3. Begum Hazrat Mahal
+4. Rani Laxmibai
+
+Code:
+A B C D`,
+                options: {
+                    a: "A-4, B-3, C-2, D-1",
+                    b: "A-4, B-2, C-3, D-1",
+                    c: "A-3, B-4, C-2, D-1",
+                    d: "A-1, B-2, C-3, D-4"
+                },
+                correctOption: "a",
+                exam: "U.P.P.C.S. (Pre) 2010",
+                explanation: `The revolt of 1857 was led by Rani Laxmibai in Jhansi, Begum Hazrat Mahal in Lucknow, Azimullah Khan in Kanpur and Fatehpurr and Maulavi Ahmedullah Shah in Faizabad (Now-Ayodhya).`
+            },
+            {
+                id: 60,
+                question: `Which of the following pairs is not correctly matched?
+
+Place — Leadership`,
+                options: {
+                    a: "Sambhalpur — Surender Sahi",
+                    b: "Ganjam — Radhakrishna Dandsena",
+                    c: "Kashmir — Gulab singh",
+                    d: "Lucknow — Liyaqat Ali"
+                },
+                correctOption: "d",
+                exam: "U.P.P.C.S. (Pre) 2018",
+                explanation: `Liyaqat Ali was associated with Allahabad. Rest of the options are correctly matched.`
+            },
+            {
+                id: 61,
+                question: `Which of the following persons had participated actively in the Revolt of 1857?`,
+                options: {
+                    a: "Nana Saheb (Kanpur)",
+                    b: "Begum Hazrat Mahal (Lucknow)",
+                    c: "Maulavi Ahmadullah (Faizabad)",
+                    d: "Begum Zeenat Mahal (Delhi)",
+                    e: "None of the above/ More than one of the above"
+                },
+                correctOption: "e",
+                exam: "66th B.P.S.C. (Pre) 2020",
+                explanation: `1857 rebellion is also known as the First War of Independence. Many leaders & kings of that time participated in the war, like Rani Laxmi Bai of Jhansi, Tantia Tope, Nana Saheb of Kanpur, Begum Hazrat Mahal of Lucknow and many more.`
+            },
+            {
+                id: 62,
+                question: `Match List-I with List-II and select the correct answer using the code given below the lists:
+
+List-I (Name of the Revolutionaries)
+A. Nana Saheb
+B. Nawab Hamid Ali Khan
+C. Moulvi Ahmed Ullah
+D. Mani Ram Diwan
+
+List-II (Place)
+1. Delhi
+2. Kanpur
+3. Lucknow
+4. Assam
+
+Code:
+A B C D`,
+                options: {
+                    a: "A-1, B-2, C-4, D-3",
+                    b: "A-1, B-2, C-3, D-4",
+                    c: "A-2, B-1, C-4, D-3",
+                    d: "A-2, B-1, C-3, D-4"
+                },
+                correctOption: "d",
+                exam: "U.P. R.O./A.R.O. (Pre) 2016",
+                explanation: `The correctly matched list of the revolutionaries with their places of revolutions is as follows—
+
+Nana Saheb - Kanpur
+Nawab Hamid Ali Khan - Delhi
+Moulvi Ahmed-Ullah Shah - Lucknow
+Mani Ram Diwan - Assam`
+            },
+            {
+                id: 63,
+                question: `Which one of the following (Place of the revolt of 1857–Start of rebellion) is not correctly matched?`,
+                options: {
+                    a: "Lucknow - 4 June, 1857",
+                    b: "Jhansi - 11 May, 1857",
+                    c: "Meerut - 10 May, 1857",
+                    d: "Barrackpur - 29 March, 1857"
+                },
+                correctOption: "b",
+                exam: "U.P.P.C.S. (Pre) 2023",
+                explanation: `• On 29th March, 1857 soldiers of Barrackpore (West Bengal) refused to use the fat-containing cartridges and revolted.
+• On 10th May 1857, 3rd Bengal Light cavalry and twentieth regiment of British Indian Army positioned in Meerut revolted.`
+            },
+            {
+                id: 64,
+                question: `Who was the Governor-General of India during the revolt of 1857?`,
+                options: {
+                    a: "Lord Dalhousie",
+                    b: "Lord Minto",
+                    c: "Lord Canning",
+                    d: "Lord Bentinck"
+                },
+                correctOption: "c",
+                exam: "U.P.R.O./A.R.O. (Mains) 2013\nU.P.P.C.S. (Pre) 2012\nChhattisgarh P.C.S. (Pre) 2005\nU.P.P.C.S. (Pre) 1990",
+                explanation: `Lord Canning was Governor General of India during the 1857 revolt. Lord Canning was the last Governor General of the Company in India and the first Viceroy appointed by British Crown. Indian High Court Act 1861 introduced judicial reforms and established High Court in Bombay, Calcutta, and Madras during the tenure of Canning. In the field of social reform, Hindu Widow Remarriage Act, 1856 was passed during the tenure of Lord Canning.`
+            },
+            {
+                id: 65,
+                question: `Who was the Governor-General of India during the revolt of 1857?`,
+                options: {
+                    a: "Lord Hastings",
+                    b: "Lord Canning",
+                    c: "Lord Amherst",
+                    d: "Lord Auckland"
+                },
+                correctOption: "b",
+                exam: "Uttarakhand P.C.S. (Pre) 2016",
+                explanation: `See the explanation of the above question.`
+            },
+            {
+                id: 66,
+                question: `Who was the Governor-General of India in 1857?`,
+                options: {
+                    a: "Wellesley",
+                    b: "Dalhousie",
+                    c: "Canning",
+                    d: "Minto"
+                },
+                correctOption: "c",
+                exam: "56th to 59th B.P.S.C. (Pre) 2015",
+                explanation: `See the explanation of the above question.`
+            },
+            {
+                id: 67,
+                question: `Who was the Governor-General of India during the Sepoy Mutiny?`,
+                options: {
+                    a: "Lord Canning",
+                    b: "Lord Dalhousie",
+                    c: "Lord Hardings",
+                    d: "Lord Lytton"
+                },
+                correctOption: "a",
+                exam: "I.A.S. (Pre) 2006",
+                explanation: `See the explanation of the above question.`
+            },
+            {
+                id: 68,
+                question: `At the time of 1857 Revolt who was the British Commanding Officer at Barrackpore?`,
+                options: {
+                    a: "Henry Lawrence",
+                    b: "Colonel Finnis",
+                    c: "Hearsey",
+                    d: "Sir Hugh Wheeler"
+                },
+                correctOption: "c",
+                exam: "U.P.P.S.C. (R.I.) 2014",
+                explanation: `Lieutenant General Sir John Bennet Hearsey was commanding officer during the revolt of 1857 in Barrackpore.`
+            },
+            {
+                id: 69,
+                question: `Who has made Allahabad the emergency headquarters in 1857?`,
+                options: {
+                    a: "Lord Canning",
+                    b: "Lord Cornwallis",
+                    c: "Lord Wellesley",
+                    d: "Lord William Bentinck"
+                },
+                correctOption: "a",
+                exam: "U.P.P.C.S. (Pre) 2005",
+                explanation: `Lord Canning made Allahabad (Now-Prayagraj) the emergency headquarters in 1857.`
+            },
+            {
+                id: 70,
+                question: `Who was the British Prime minister during the revolt of 1857 ?`,
+                options: {
+                    a: "Churchill",
+                    b: "Palmerston",
+                    c: "Attlee",
+                    d: "Gladstone"
+                },
+                correctOption: "b",
+                exam: "U.P. P.C.S. (Pre) 1991",
+                explanation: `Viscount Palmerston (Henry John Temple, 3rd viscount Palmerston) was the British Prime Minister during the revolt of 1857. His tenure was from 1855 to 1858 and 1859-1865.`
+            },
+            {
+                id: 71,
+                question: `Whose name, amongst the following is not associated with the Revolt of 1857?`,
+                options: {
+                    a: "Col. St. Legar",
+                    b: "Lt. Col. Gibbs",
+                    c: "Col. Wallace",
+                    d: "All of the above"
+                },
+                correctOption: "d",
+                exam: "U.P.P.C.S. (Mains) 2017",
+                explanation: `None of the personalities mentioned in the given options is associated with the revolt of 1857.`
+            },
+            {
+                id: 72,
+                question: `What was the main cause of the failure of the revolt of 1857?`,
+                options: {
+                    a: "Lack of Hindu-Muslim unity",
+                    b: "Lack of common strategy and central organization",
+                    c: "Its effect was within a limited area",
+                    d: "Non-participations of Landlords"
+                },
+                correctOption: "b",
+                exam: "41st B.P.S.C. (Pre) 1996"
+            },
+            {
+                id: 73,
+                question: `The first freedom struggle of 1857 failed because –`,
+                options: {
+                    a: "There was lack of unity of purpose in Indian sepoys",
+                    b: "Generally, Native Kings supported British",
+                    c: "British Soldiers were better equipped and organised rather than Indians",
+                    d: "All of the above"
+                },
+                correctOption: "d",
+                exam: "U.P. Lower Sub. (Pre) 1998",
+                explanation: `Expansion in limited areas, lack of unity and planning, no unified leadership and discipline, better resources of the British, role of traitors, the return of British troops from Crimea, no support of native rulers, non-cooperation of Sikhs and Punjabis as well as educated Indian middle class etc. were major causes behind the failure of the revolt of 1857.`
+            },
+            {
+                id: 74,
+                question: `Which of the following were the reasons for the failure of the Revolt of 1857?
+
+The military superiority of the British
+
+The rebels did not have a unified programme and ideology
+
+There was a lack of support from all the sections of society
+
+Select the correct answer using the codes given below.`,
+                options: {
+                    a: "Only 1 and 2",
+                    b: "Only 2 and 3",
+                    c: "All of the above",
+                    d: "None of the above"
+                },
+                correctOption: "c",
+                exam: "69th B.P.S.C. (Pre) 2023",
+                explanation: `See the explanation of the above question.`
+            },
+            {
+                id: 75,
+                question: `The British were able to suppress the uprising of 1857 in Rajput state because:`,
+                options: {
+                    a: "The local Rajput rulers did not support revolutionaries.",
+                    b: "The educated middle class supported the British",
+                    c: "The soldiers in cantonments were not prepared to accept leadership of revolution from outside Rajasthan.",
+                    d: "The newspaper could not project the true aim of the revolution."
+                },
+                correctOption: "a",
+                exam: "R.A.S./R.T.S. (Pre) 1996",
+                explanation: `See the explanation of the above question.`
+            },
+            {
+                id: 76,
+                question: `Which among the following British officers lost their lives at Lucknow?
+
+General John Nicholson
+
+General Neil
+
+Major Havelock
+
+Sir Henry Lawrence
+
+Select the correct answer from the code given below –`,
+                options: {
+                    a: "1, 2 and 3",
+                    b: "1, 3 and 4",
+                    c: "2, 3 and 4",
+                    d: "All of the above"
+                },
+                correctOption: "c",
+                exam: "U.P.P.C.S. (Pre) 2008",
+                explanation: `Brigadier General John Nicholson died in September, 1857 during the acquisition of Delhi by British. Sir Henery Lawrence, Major General Henry Havelock, and Brigadier General Neil died in Lucknow while protecting English residency.`
+            },
+            {
+                id: 77,
+                question: `Consider :
+
+Assertion (A) : The first war of Independence in 1857 failed to secure freedom from the British Government.
+
+Reason (R) : The leadership of Bahadur Shah Zafar did not have popular support and most of the Indian rulers of important States shied away from the struggle.
+
+Select the correct answer from the code given below:`,
+                options: {
+                    a: "Both (A) and (R) are true, and (R) is the correct explanation of (A).",
+                    b: "Both (A) and (R) are true, but (R) is not the correct explanation of (A).",
+                    c: "(A) is true, and (R) is false.",
+                    d: "(A) is false, but (R) is true."
+                },
+                correctOption: "a",
+                exam: "39th B.P.S.C. (Pre) 1994",
+                explanation: `Both (A) and (R) are true, and R is the correct explanation of A. There were various reasons for the failure of the first war of independence in 1857, but the most important reason was the support of native kings of major territories by the British.`
+            },
+            {
+                id: 78,
+                question: `Who called the revolt of 1857 a conspiracy?`,
+                options: {
+                    a: "Sir James Outram and W. Taylor",
+                    b: "Sir John K.",
+                    c: "Sir John Lawrence",
+                    d: "T.R. Homes"
+                },
+                correctOption: "a",
+                exam: "40th B.P.S.C. (Pre) 1995",
+                explanation: `Sir James Outram and W. Taylor observed that the revolt of 1857 was the result of a Hindu-Muslim conspiracy. Outram observed that it was a Muslim conspiracy that took advantage of Hindu grievances. According to John Celety, it was a ‘Sepoy Mutiny’ while T.R. Holmes expressed that it was a conflict between civilization and barbarism.`
+            },
+            {
+                id: 79,
+                question: `Modern Historian, who called the revolt of 1857 as the first Independence War was –`,
+                options: {
+                    a: "Dr. R.C. Mazumdar",
+                    b: "Dr. S.N. Sen",
+                    c: "V. D. Savarkar",
+                    d: "Ashok Mehta"
+                },
+                correctOption: "c",
+                exam: "M.P.P.C.S. (Pre) 2008",
+                explanation: `V. D. Savarkar stated in his book “The Indian War of Independence 1857” that it was a well-planned revolt against British. He called the revolt the first war of Independence.`
+            },
+            {
+                id: 80,
+                question: `Who termed the uprising of 1857 as the first war of independence?`,
+                options: {
+                    a: "V. A. Smith",
+                    b: "P. E. Roberts",
+                    c: "V. D. Savarkar",
+                    d: "All of the above"
+                },
+                correctOption: "c",
+                exam: "U.P.P.C.S. (Mains) 2015",
+                explanation: `See the explanation of the above question.`
+            },
+            {
+                id: 81,
+                question: `The Uprising of 1857 was described as the 'First Indian War of Independence' by :`,
+                options: {
+                    a: "V.D. Savarkar",
+                    b: "Bal Gangadhar Tilak",
+                    c: "R.C. Majumdar",
+                    d: "Dadabhai Naoroji",
+                    e: "None of the above/More than one of the above"
+                },
+                correctOption: "a",
+                exam: "67th B.P.S.C. (Pre) 2022",
+                explanation: `See the explanation of the above question.`
+            },
+            {
+                id: 82,
+                question: `The official historian of Indian Freedom struggle was:`,
+                options: {
+                    a: "R.C. Mazumdar",
+                    b: "Tarachandra",
+                    c: "V. D. Savarkar",
+                    d: "S. N. Sen"
+                },
+                correctOption: "d",
+                exam: "U.P.P.C.S. (Pre) 2010",
+                explanation: `The official historian of Indian Freedom struggle was S. N. Sen whose book titled 'Eighteen Fifty-seven' was published in 1957.`
+            },
+            {
+                id: 83,
+                question: `The first Indian to write in Indian language on the causes of the uprising of 1857 was.`,
+                options: {
+                    a: "Syed Ahmed Khan",
+                    b: "V. D. Savarkar",
+                    c: "Bankim Chandra Chatterjee",
+                    d: "None of the above."
+                },
+                correctOption: "a",
+                exam: "U.P. Lower Sub. (Pre) 2009",
+                explanation: `Asbab-e-Baghawat-e-Hind, written by Sir Syed Ahmed Khan was published in 1859 in which the cause of the revolt of 1857 had been discussed.`
+            },
+            {
+                id: 84,
+                question: `The statement “the so-called first national war of independence was neither first, nor national, nor a war of independence” is associated with`,
+                options: {
+                    a: "R.C. Majumdar",
+                    b: "S. N. Sen",
+                    c: "Tarachand",
+                    d: "V.D. Savarkar"
+                },
+                correctOption: "a",
+                exam: "U.P.P.C.S. (Mains) 2010",
+                explanation: `Dr. R. C. Majumdar, the eminent historian, stated in his book “The Sepoy Mutiny and the Revolt of 1857” that “the so-called first national war of independence of 1857 was neither first, nor national, nor a war of independence”.`
+            },
+            {
+                id: 85,
+                question: `Who wrote, “It is difficult to avoid the conclusion that the so-called first National War of Independence of 1857 is neither first, nor National, nor a war of independence”?`,
+                options: {
+                    a: "R.C. Majumdar",
+                    b: "Syed Ahmad",
+                    c: "Roberts",
+                    d: "Coupland"
+                },
+                correctOption: "a",
+                exam: "R.O./A.R.O. (Pre) 2017",
+                explanation: `See the explanation of the above question.`
+            },
+            {
+                id: 86,
+                question: `Who was the prominent Indian Historian who did not accept 1857 Revolution as a Revolution?`,
+                options: {
+                    a: "Tarachand",
+                    b: "Dr. S.N. Sen",
+                    c: "Sawarkar",
+                    d: "Dr. R.C. Majumdar",
+                    e: "None of these"
+                },
+                correctOption: "d",
+                exam: "Chhattisgarh P.C.S. (Pre) 2016",
+                explanation: `Indian Government appointed R.C. Majumdar to write the history of the revolt of 1857. But due to some differences, he refused and published his own book ‘The Sepoy Mutiny and the Revolt of 1857’. Dr. R.C. Majumdar, however, considers the revolt of 1857 to be neither the first, nor national, nor a war of independence as a large part of the country remained unaffected, and many sections of the people took no part in the upsurge.`
+            },
+            {
+                id: 87,
+                question: `'Indian nationalism in the middle of the 19th century was in Embryonic stage', historian with regard to the fact :`,
+                options: {
+                    a: "Dr. R.C. Majumdar and Dr. S.N. Sen",
+                    b: "Sir James Outram and W. Tailor",
+                    c: "T.R. Homes and L.E.R. Reas",
+                    d: "Sir John Lawrence and Seale"
+                },
+                correctOption: "a",
+                exam: "M.P. P.S.C. (Pre) 2020",
+                explanation: `Indian Nationalism was in embryonic stage in the middle of the 19th century is considered by historian like Dr. R.C. Mazumdar and Dr. S.N. Sen.`
+            },
+            {
+                id: 88,
+                question: `Which one of the following conceptions is true about the Revolt of 1857?`,
+                options: {
+                    a: "Indian historians have described it as an Indian mutiny.",
+                    b: "British historians have described it as a war of independence.",
+                    c: "It gave a death blow to the system of East India Company’s rule in India",
+                    d: "It was for the improvement of the administrative machinery in India"
+                },
+                correctOption: "c",
+                exam: "U.P.P.C.S. (Mains) 2010",
+                explanation: `In the aftermath of 1857 revolt, East India company's rule ended in India and the reign was handed over to Queen Victoria by a proclamation announced on November 1, 1858. She assumed the responsibility of the Indian administration in her hand. Hence, the option (c) is correct.`
+            },
+            {
+                id: 89,
+                question: `When did Queen Victoria declare the taking over of Indian Administration under British crown?`,
+                options: {
+                    a: "1 Nov. 1858",
+                    b: "31 Dec. 1857",
+                    c: "6 Jan. 1958",
+                    d: "17 Nov. 1859"
+                },
+                correctOption: "a",
+                exam: "48th to 52nd B.P.S.C. (Pre) 2008",
+                explanation: `See the explanation of the above question.`
+            },
+            {
+                id: 90,
+                question: `Indians were assured of many things in the declaration by Queen Victoria in 1858. Which among the following assurances was fulfilled by the British Government:`,
+                options: {
+                    a: "Policy of annexation will be abandoned",
+                    b: "‘Status quo’ of the native rulers would be maintained",
+                    c: "Equal treatment would be given to all subjects, Indians, and Europeans",
+                    d: "There would be no interference in the social and religious beliefs of the Indians"
+                },
+                correctOption: "a",
+                exam: "U.P.P.C.S. (Pre) 1994",
+                explanation: `The major result of 1857 revolt was the proclamation on November 1st, 1858 by Queen Victoria. This was proclaimed by Lord Canning during Allahabad Durbar. The ruthless, exploitative era of the East India Company was ended and a new era of British rule to be governed directly by British Crown began. This proclamation included the abandonment of the policy of conquest and annexation, adherence to the principles of secularism and religious neutrality and same judicial facilities to everyone without any discrimination. Among all these only abandonment of the policy of conquest and annexation was followed.`
+            },
+            {
+                id: 91,
+                question: `What was/were the object/objects of Queen Victoria’s Proclamation (1858)?
+
+To disclaim any intention to annex the Indian States
+
+To place the Indian administration under the British Crown
+
+To regulate East India Company’s trade with India
+
+Select the correct answer using the code given below.`,
+                options: {
+                    a: "1 and 2 only",
+                    b: "2 only",
+                    c: "1 and 3 only",
+                    d: "1, 2 and 3"
+                },
+                correctOption: "a",
+                exam: "I.A.S. (Pre) 2014",
+                explanation: `British Government passed an Act in 1858, which is known as ‘Act of administrative reforms in India’. Provision of the Act is mentioned below –
+• The company’s territories in India were to be governed by Queen, the company ceased to exercise its power and control over those territories. India was now to be governed in the name of the queen.
+• The Queen’s principal secretary of state for India received the powers and duties of the company’s court of directors.
+• A council of fifteen members was appointed to assist the secretary of state for India. The Council became an advisory body of Indian affairs. For all the communications between Britain and India, the secretary of the state became the real channel.
+• The Crown was empowered to appoint a Governor-General and the Governors of the Presidencies.
+• An Indian Civil Service was to be created under the control of the secretary of state.
+• All the property and other assets of the East India Company were transferred to the crown. The crown also assumed the responsibilities of the company, their related treaties, contracts and so forth.`
+            },
+            {
+                id: 92,
+                question: `Which one of the following commissions is associated with the Army Reorganization after the suppression of the Revolt of 1857?`,
+                options: {
+                    a: "Public Service Commission",
+                    b: "Peel Commission",
+                    c: "Hunter Commission",
+                    d: "Simon Commission"
+                },
+                correctOption: "b",
+                exam: "45th B.P.S.C. (Pre) 2001",
+                explanation: `Peel Commission is associated with the army reorganization after the suppression of the Revolt of 1857.`
+            },
+            {
+                id: 93,
+                question: `After the revolt of 1857, the British recruited the Soldiers from the`,
+                options: {
+                    a: "Brahmins of U.P. & Bihar",
+                    b: "Bengalis and Orria’s from the East",
+                    c: "Gurkhas, Sikhs, and Punjabis in the North",
+                    d: "Madras presidency and Marathas"
+                },
+                correctOption: "c",
+                exam: "48th to 52nd B.P.S.C. (Pre) 2008",
+                explanation: `After the revolt of 1857, the British recruited the soldiers from the Gurkhas, Sikhs, and Punjabis in the North. In the enhancement of revolt of 1857, the soldiers from Uttar Pradesh and Bihar played an important role, so the British government became suspicious about them. During the revolt, 60% soldiers of Bengal Army were from Oudh and north-west province. The Indian army was responsible for mutiny of 1857 and on 1 Nov 1858 Queen Victoria declared reorganisation of the army on the basis of separation and conflict policy.`
+            }
+        ];
+
+        /* =========================================
+           NOTHING BELOW THIS NEEDS TO BE TOUCHED
+           ========================================= */
+
+        const state = {
+            answers: {}, // qid -> option key or null
+            isSubmitted: false,
+            startTime: null,
+            endTime: null,
+            timerInterval: null,
+            remainingSeconds: 0,
+            totalSeconds: 0,
+            isPaused: false
+        };
+
+        const quizContainer = document.getElementById("quiz-container");
+        const resultSummary = document.getElementById("result-summary");
+        const notesSection = document.getElementById("notes-section");
+        const notesContent = document.getElementById("notes-content");
+        const timerEl = document.getElementById("timer");
+        const submitBtn = document.getElementById("submit-btn");
+        const resetBtn = document.getElementById("reset-btn");
+        const printNotesBtn = document.getElementById("print-notes-btn");
+        const pauseResumeBtn = document.getElementById("pause-resume-btn");
+
+        function formatText(text) {
+            return text.replace(/\n/g, "<br>");
+        }
+
+        function renderQuiz() {
+            quizContainer.innerHTML = "";
+            quizData.forEach(q => {
+                const box = document.createElement("div");
+                box.className = "question-box";
+                box.dataset.qid = q.id;
+
+                let starMarkedQuestion = false;
+
+                const header = document.createElement("div");
+                header.className = "question-header";
+                header.innerHTML = "<span class='q-number'>" + q.id + ".</span> " +
+                    "<span class='question-text'>" + formatText(q.question) + "</span>";
+                box.appendChild(header);
+
+                const optionsDiv = document.createElement("div");
+                optionsDiv.className = "options";
+
+                Object.keys(q.options).forEach(key => {
+                    const label = document.createElement("label");
+                    label.className = "option-label";
+                    label.dataset.qid = q.id;
+                    label.dataset.optionKey = key;
+
+                    const input = document.createElement("input");
+                    input.type = "radio";
+                    input.name = "q" + q.id;
+                    input.value = key;
+
+                    // Radio button changes when clicked (or when label is clicked)
+                    input.addEventListener("change", onOptionChange);
+
+                    const keySpan = document.createElement("span");
+                    keySpan.textContent = "(" + key + ") ";
+
+                    const textSpan = document.createElement("span");
+                    textSpan.className = "option-text";
+
+                    const originalText = q.options[key];
+                    let optionText = originalText;
+
+                    // NEW: detect leading "*" to mark previously marked answer
+                    if (typeof originalText === "string" && originalText.trim().startsWith("*")) {
+                        starMarkedQuestion = true;
+                        optionText = originalText.replace(/^\s*\*\s*/, ""); // remove leading '*'
+                    }
+
+                    textSpan.textContent = optionText;
+
+                    if (key === q.correctOption) {
+                        textSpan.classList.add("correct-option-text");
+                    }
+
+                    label.appendChild(input);
+                    label.appendChild(keySpan);
+                    label.appendChild(textSpan);
+
+                    optionsDiv.appendChild(label);
+                });
+
+                box.appendChild(optionsDiv);
+
+                const examDiv = document.createElement("div");
+                examDiv.className = "exam-name";
+                examDiv.innerHTML = q.exam ? formatText(q.exam) : "";
+                box.appendChild(examDiv);
+
+                // Optional explanation block (hidden by default)
+                if (q.explanation) {
+                    const explDiv = document.createElement("div");
+                    explDiv.className = "explanation";
+                    explDiv.style.display = "none";
+                    explDiv.innerHTML = "<strong>Explanation:</strong> " + formatText(q.explanation);
+                    box.appendChild(explDiv);
+                }
+
+                // If any option was '*' marked, color this question sky blue initially
+                if (starMarkedQuestion) {
+                    box.classList.add("star-marked");
+                }
+
+                quizContainer.appendChild(box);
+
+                state.answers[q.id] = null;
+            });
+        }
+
+        function startTimerIfNeeded() {
+            if (state.startTime !== null || state.isSubmitted) return;
+            state.startTime = new Date();
+            state.endTime = null;
+            state.timerInterval = setInterval(() => {
+                if (state.isPaused) return;
+                state.remainingSeconds--;
+                if (state.remainingSeconds <= 0) {
+                    state.remainingSeconds = 0;
+                    updateTimerDisplay();
+                    clearInterval(state.timerInterval);
+                    if (!state.isSubmitted) {
+                        submitQuiz(true);
+                    }
+                } else {
+                    updateTimerDisplay();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const mins = String(Math.floor(state.remainingSeconds / 60)).padStart(2, "0");
+            const secs = String(state.remainingSeconds % 60).padStart(2, "0");
+            timerEl.textContent = "Time left: " + mins + ":" + secs;
+        }
+
+        function onOptionChange(event) {
+            if (state.isSubmitted) return;
+
+            const input = event.target;
+            const qid = parseInt(input.name.substring(1), 10); // name is "q{id}"
+            const optionKey = input.value;
+
+            startTimerIfNeeded();
+
+            const box = document.querySelector('.question-box[data-qid="' + qid + '"]');
+            const q = getQuestionById(qid);
+            if (!q) return;
+
+            state.answers[qid] = optionKey;
+
+            // Update background colour
+            box.classList.remove("neutral", "unanswered", "correct", "incorrect", "star-marked");
+            if (optionKey === q.correctOption) {
+                box.classList.add("correct");
+            } else {
+                box.classList.add("incorrect");
+            }
+            box.classList.add("show-correct");
+
+            // Show/hide explanation only based on correctness
+            const explDiv = box.querySelector(".explanation");
+            if (explDiv) {
+                if (optionKey === q.correctOption) {
+                    explDiv.style.display = "none";
+                } else {
+                    explDiv.style.display = "block";
+                }
+            }
+        }
+
+        function getQuestionById(id) {
+            return quizData.find(q => q.id === id);
+        }
+
+        function computeStats() {
+            let total = quizData.length;
+            let attempted = 0;
+            let correct = 0;
+            let incorrect = 0;
+            let incorrectQs = [];
+            let unattemptedQs = [];
+
+            quizData.forEach(q => {
+                const ans = state.answers[q.id];
+                if (ans === null) {
+                    unattemptedQs.push(q.id);
+                } else {
+                    attempted++;
+                    if (ans === q.correctOption) {
+                        correct++;
+                    } else {
+                        incorrect++;
+                        incorrectQs.push(q.id);
+                    }
+                }
+            });
+
+            const accuracy = attempted > 0 ? (correct / attempted) * 100 : 0;
+            const marks = correct - (incorrect / 3);
+
+            let timeTakenSeconds = 0;
+            if (state.startTime && state.endTime) {
+                timeTakenSeconds = Math.round((state.endTime - state.startTime) / 1000);
+            }
+            const tMin = Math.floor(timeTakenSeconds / 60);
+            const tSec = timeTakenSeconds % 60;
+            const timeTakenStr = tMin + " min " + tSec + " sec";
+
+            return {
+                total,
+                attempted,
+                notAttempted: total - attempted,
+                correct,
+                incorrect,
+                accuracy,
+                marks,
+                incorrectQs,
+                unattemptedQs,
+                timeTakenStr
+            };
+        }
+
+        function submitQuiz(auto = false) {
+            if (state.isSubmitted) return;
+
+            if (!state.startTime) {
+                state.startTime = new Date();
+            }
+            state.endTime = new Date();
+            state.isSubmitted = true;
+            if (state.timerInterval) {
+                clearInterval(state.timerInterval);
+            }
+
+            const stats = computeStats();
+
+            quizData.forEach(q => {
+                const box = document.querySelector('.question-box[data-qid="' + q.id + '"]');
+                if (state.answers[q.id] === null) {
+                    box.classList.remove("correct", "incorrect", "show-correct", "unanswered");
+                    box.classList.add("neutral");
+                    const explDiv = box.querySelector(".explanation");
+                    if (explDiv) {
+                        explDiv.style.display = "none";
+                    }
+                } else {
+                    box.classList.add("show-correct");
+                    box.classList.remove("unanswered");
+                }
+            });
+
+            renderSummary(stats, auto);
+            renderRevisionNotes(stats);
+        }
+
+        function renderSummary(stats, auto) {
+            resultSummary.classList.remove("hidden");
+            resultSummary.innerHTML = "";
+
+            const heading = document.createElement("h2");
+            heading.textContent = "Quiz Summary";
+            resultSummary.appendChild(heading);
+
+            const table = document.createElement("table");
+            const rows = [
+                ["Total Questions", stats.total],
+                ["Attempted", stats.attempted],
+                ["Not Attempted", stats.notAttempted],
+                ["Correct", stats.correct],
+                ["Incorrect", stats.incorrect],
+                ["Accuracy %", stats.accuracy.toFixed(2)],
+                ["Marks (1, -1/3)", stats.marks.toFixed(2)],
+                ["Time Taken", stats.timeTakenStr],
+                ["Incorrect Q. Nos.", stats.incorrectQs.length ? stats.incorrectQs.join(", ") : "None"],
+                ["Unattempted Q. Nos.", stats.unattemptedQs.length ? stats.unattemptedQs.join(", ") : "None"]
+            ];
+
+            rows.forEach(([label, value]) => {
+                const tr = document.createElement("tr");
+                const th = document.createElement("th");
+                th.textContent = label;
+                const td = document.createElement("td");
+                td.textContent = value;
+                tr.appendChild(th);
+                tr.appendChild(td);
+                table.appendChild(tr);
+            });
+
+            resultSummary.appendChild(table);
+
+            const printDiv = document.createElement("div");
+            printDiv.className = "print-buttons";
+            const printBtn = document.createElement("button");
+            printBtn.textContent = "Print / Save Summary as PDF";
+            printBtn.addEventListener("click", printSummary);
+            printDiv.appendChild(printBtn);
+
+            resultSummary.appendChild(printDiv);
+
+            if (auto) {
+                const autoNote = document.createElement("p");
+                autoNote.style.marginTop = "8px";
+                autoNote.style.fontStyle = "italic";
+                autoNote.textContent = "Note: Quiz was auto-submitted when time ran out.";
+                resultSummary.appendChild(autoNote);
+            }
+        }
+
+        // For notes: expand “all of the above” / “more than one” options
+        function getCorrectAnswerForNotes(q) {
+            const correctKey = q.correctOption;
+            const correctTextRaw = q.options[correctKey];
+            if (!correctTextRaw) return "Answer key not specified";
+
+            const lower = correctTextRaw.toLowerCase();
+
+            if (lower.includes("all of the above") || lower.includes("more than one")) {
+                const expandedParts = Object.keys(q.options)
+                    .filter(k => k !== correctKey)
+                    .map(k => "(" + k + ") " + q.options[k]);
+                return expandedParts.join("; ");
+            }
+
+            // Normal case: just the text (no "(c)")
+            return correctTextRaw.replace(/^\s*\*\s*/, ""); // strip leading '*' if any
+        }
+
+        function renderRevisionNotes(stats) {
+            notesContent.innerHTML = "";
+            const notes = [];
+
+            quizData.forEach(q => {
+                const ans = state.answers[q.id];
+                if (ans === q.correctOption && ans !== null) {
+                    return; // skip fully correct ones
+                }
+                const noteP = document.createElement("p");
+
+                const questionText = q.question.replace(/\n/g, " ");
+                const correctAnswerText = getCorrectAnswerForNotes(q);
+
+                // Desired format:
+                // Q1. Question text ➜ Correct answer text
+                noteP.innerHTML =
+                    "<strong>Q" + q.id + ". " + questionText + "</strong>" +
+                    " &nbsp; ➜ &nbsp; " + correctAnswerText;
+
+                notesContent.appendChild(noteP);
+                notes.push(noteP);
+            });
+
+            if (notes.length > 0) {
+                notesSection.classList.remove("hidden");
+            } else {
+                notesSection.classList.add("hidden");
+            }
+        }
+
+        function resetQuiz() {
+            if (state.timerInterval) {
+                clearInterval(state.timerInterval);
+            }
+            state.isSubmitted = false;
+            state.startTime = null;
+            state.endTime = null;
+            state.totalSeconds = quizData.length * 15; // 15 sec per question
+            state.remainingSeconds = state.totalSeconds;
+            state.answers = {};
+            state.isPaused = false;
+            if (pauseResumeBtn) {
+                pauseResumeBtn.textContent = "Pause Timer";
+            }
+            quizData.forEach(q => {
+                state.answers[q.id] = null;
+            });
+            renderQuiz();
+            resultSummary.classList.add("hidden");
+            notesSection.classList.add("hidden");
+            notesContent.innerHTML = "";
+            updateTimerDisplay();
+        }
+
+        function printSummary() {
+            const summaryHtml = resultSummary.innerHTML;
+            const win = window.open("", "_blank");
+            win.document.write("<html><head><title>Quiz Summary</title></head><body>");
+            win.document.write("<h2>Quiz Summary</h2>");
+            win.document.write(summaryHtml);
+            win.document.write("</body></html>");
+            win.document.close();
+            win.focus();
+            win.print();
+        }
+
+        function printNotes() {
+            if (!notesContent.innerHTML.trim()) return;
+            const notesHtml = notesContent.innerHTML;
+            const win = window.open("", "_blank");
+            win.document.write("<html><head><title>Revision Notes</title></head><body>");
+            win.document.write("<h2>Revision Notes</h2>");
+            win.document.write(notesHtml);
+            win.document.write("</body></html>");
+            win.document.close();
+            win.focus();
+            win.print();
+        }
+
+        // Pause/Resume Timer
+        function togglePause() {
+            if (state.isSubmitted) return;
+            if (!state.startTime) return;
+            state.isPaused = !state.isPaused;
+            pauseResumeBtn.textContent = state.isPaused ? "Resume Timer" : "Pause Timer";
+        }
+
+        // Initial setup
+        resetQuiz();
+
+        submitBtn.addEventListener("click", () => submitQuiz(false));
+        resetBtn.addEventListener("click", resetQuiz);
+        printNotesBtn.addEventListener("click", printNotes);
+        pauseResumeBtn.addEventListener("click", togglePause);
+    </script>
+</body>
+</html>
