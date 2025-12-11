@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Advent of Europeans – Set 1–64</title>
+    <style>
+        :root {
+            --question-initial-bg: #fffde7; /* very light yellow (initial) */
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 17px;
+            margin: 0;
+            padding: 16px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            margin-top: 0;
+            margin-bottom: 16px;
+            text-align: left;
+        }
+        #quiz-container {
+            width: 100%;
+        }
+        .question-box {
+            width: 100%;
+            background-color: var(--question-initial-bg);
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 12px 14px 8px 14px;
+            margin-bottom: 12px;
+            position: relative;
+        }
+        .question-header {
+            margin-bottom: 6px;
+        }
+        .question-text {
+            font-weight: bold; /* Questions in bold, not options */
+        }
+        .options {
+            margin-top: 4px;
+            margin-left: 20px;
+        }
+        .option-label {
+            display: block;
+            margin: 3px 0;
+            cursor: pointer;
+        }
+        .option-label input[type="radio"] {
+            margin-right: 6px;
+        }
+        .exam-name {
+            margin-top: 6px;
+            text-align: right;
+            font-size: 0.9em;
+            font-style: italic;
+        }
+        .question-box.correct {
+            background-color: #d4edda; /* light green */
+        }
+        .question-box.incorrect {
+            background-color: #f8d7da; /* light red */
+        }
+        .question-box.neutral {
+            background-color: var(--question-initial-bg); /* revert to original background when toggled off */
+        }
+        .question-box.unanswered {
+            background-color: var(--question-initial-bg); /* keep original after submit */
+        }
+        .question-box.show-correct .correct-option-text {
+            font-weight: bold;
+            text-decoration: underline;
+        }
+        #controls {
+            margin-top: 16px;
+            display: flex;
+            gap: 12px;
+        }
+        button {
+            font-size: 16px;
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: 1px solid #555;
+            cursor: pointer;
+            background-color: #ffffff;
+        }
+        button:hover {
+            filter: brightness(0.97);
+        }
+        #timer {
+            position: fixed;
+            bottom: 10px;
+            right: 12px;
+            padding: 6px 10px;
+            background-color: #222;
+            color: #fff;
+            border-radius: 4px;
+            font-size: 14px;
+            z-index: 999;
+        }
+        #result-summary, #notes-section {
+            margin-top: 18px;
+            padding: 12px;
+            background-color: #ffffff;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+        #result-summary.hidden, #notes-section.hidden {
+            display: none;
+        }
+        #result-summary table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        #result-summary th, #result-summary td {
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        #notes-content p {
+            margin: 8px 0;
+        }
+        .print-buttons {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        @media print {
+            #timer, #controls {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Advent of Europeans – MCQs (1–64)</h1>
+
+    <div id="quiz-container"></div>
+
+    <div id="controls">
+        <button id="submit-btn">Submit Quiz</button>
+        <button id="reset-btn">Reset Quiz</button>
+    </div>
+
+    <div id="result-summary" class="hidden"></div>
+
+    <div id="notes-section" class="hidden">
+        <h2>Revision Notes (Wrong &amp; Unattempted Only)</h2>
+        <div id="notes-content"></div>
+        <div class="print-buttons">
+            <button id="print-notes-btn">Print / Save Notes as PDF</button>
+        </div>
+    </div>
+
+    <div id="timer">Time left: --:--</div>
+
+    <script>
+        /* ===============================
+           1. quizData PART
+           =============================== */
+        const quizData = [
+            {
+                id: 1,
+                question: "In which year Vasco-da-Gama arrived at Calicut ?",
+                options: {
+                    a: "1350 A.D.",
+                    b: "1498 A.D.",
+                    c: "1530 A.D.",
+                    d: "1612 A.D."
+                },
+                correctOption: "b",
+                exam: "Chhattisgarh P.C.S. (Pre) 2004"
+            },
+            {
+                id: 2,
+                question: "Which of the following is/are true about Vasco Da Gama?\n\n(i) Zamorin (Samuthiri) was the ruler of Calicut during Vasco Da Gama's trip to India in 1498.\n(ii) In his first trip Vasco Da Gama stayed for approximately one year in India.\n(iii) Vasco Da gama revisited India in 1501.",
+                options: {
+                    a: "(i), (ii) and (iii)",
+                    b: "(i) and (ii)",
+                    c: "(i) and (iii)",
+                    d: "Only (i)"
+                },
+                correctOption: "d",
+                exam: "Chhattisgarh P.C.S. (Pre) 2022"
+            },
+            {
+                id: 3,
+                question: "Which one of the followings is connected with ‘Blue Water’ policy?",
+                options: {
+                    a: "De Almeida",
+                    b: "Albuquerque",
+                    c: "Dupleix",
+                    d: "Robert Clive"
+                },
+                correctOption: "a",
+                exam: "Uttarakhand P.C.S. (Pre) 2016"
+            },
+            {
+                id: 4,
+                question: "When did Vasco-da-Gama come to India ?",
+                options: {
+                    a: "1496",
+                    b: "1497",
+                    c: "1498",
+                    d: "1600"
+                },
+                correctOption: "c",
+                exam: "M.P. P.C.S. (Pre) 1995 | U.P. P.C.S. (Pre) 1992"
+            },
+            {
+                id: 5,
+                question: "Who was the first Portuguese Viceroy in India?",
+                options: {
+                    a: "Diaz",
+                    b: "Vasco da Gama",
+                    c: "Almeida",
+                    d: "Albuquerque"
+                },
+                correctOption: "c",
+                exam: "45th B.P.S.C. (Pre) 2001"
+            },
+            {
+                id: 6,
+                question: "Who among the following had welcomed Vasco da Gama at Calicut ?",
+                options: {
+                    a: "Gasper Correa",
+                    b: "Albuquerque",
+                    c: "Zamorin",
+                    d: "Don Ahnalda"
+                },
+                correctOption: "c",
+                exam: "U.P. Lower Sub. (Pre) 2013"
+            },
+            {
+                id: 7,
+                question: "Who among the following visitor to India did not belong to Portuguese country?",
+                options: {
+                    a: "Duarte Barbosa",
+                    b: "Domingo Paes",
+                    c: "Peter Mundy",
+                    d: "Fernao Nuniz"
+                },
+                correctOption: "c",
+                exam: "U.P.R.O./A.R.O. (Pre) 2021"
+            },
+            {
+                id: 8,
+                question: "Match List-I and List-II and select the correct answer from the code given below :\n\nList-I (Voyagers)\nA. Vasco da Gama\nB. Christopher Columbus\nC. Captain Cook\nD. Tasman\n\nList-II (Countries)\n\nSpain\nPortugal\nHolland\nGreat Britain\n\nCode :",
+                options: {
+                    a: "A-3, B-2, C-1, D-4",
+                    b: "A-2, B-1, C-4, D-3",
+                    c: "A-1, B-4, C-3, D-2",
+                    d: "A-4, B-3, C-2, D-1"
+                },
+                correctOption: "b",
+                exam: "I.A.S. (Pre) 2000"
+            },
+            {
+                id: 9,
+                question: "Correctly match the following :\n\nA. Afonso de albuquerque\t(i) Change of portuguese headquarter from Cochin to Goa\nB. Nuno da Cunha\t\t(ii) Arrival in India in September 1500 AD\nC. Pedro Alvares Cabral\t(iii) Blue Water Policy\nD. Francisco de Almeida\t(iv) Acquiring Goa in 1510 AD\n\nCode :",
+                options: {
+                    a: "A-i, B-ii, C-iv, D-iii",
+                    b: "A-iv, B-i, C-ii, D-iii",
+                    c: "A-i, B-iv, C-ii, D-iii",
+                    d: "A-iv, B-i, C-iii, D-ii"
+                },
+                correctOption: "b",
+                exam: "Chhattisgarh P.C.S. (Pre) 2022"
+            },
+            {
+                id: 10,
+                question: "Match List-I with List-II :\n\nList-I (Explorer)\nA. Christopher Columbus\nB. Jacques Cartier\nC. Sir Francis Drake\nD. Ferdinand Magellan\n\nList-II (Birthplace)\n\nPortugal\nUnited Kingdom\nItaly\nFrance\n\nSelect the correct answer using the codes given below\n\nCode :",
+                options: {
+                    a: "A-3, B-4, C-2, D-1",
+                    b: "A-1, B-2, C-4, D-3",
+                    c: "A-3, B-4, C-1, D-2",
+                    d: "A-1, B-4, C-2, D-3"
+                },
+                correctOption: "a",
+                exam: "69th B.P.S.C. (Pre) 2023"
+            },
+            {
+                id: 11,
+                question: "Who were the first Europeans to come to India for trade ?",
+                options: {
+                    a: "Dutch",
+                    b: "English",
+                    c: "French",
+                    d: "Portuguese"
+                },
+                correctOption: "d",
+                exam: "U.P.P.C.S. (Mains) 2007 | U.P.P.C.S. (Spl.) (Mains) 2004 | U.P.P.C.S. (Pre) 2000 | U.P.P.C.S. (Pre) 1993 | U.P.P.C.S. (Pre) 1990"
+            },
+            {
+                id: 12,
+                question: "Who was the real founder of Portuguese power in India?",
+                options: {
+                    a: "Vasco da Gama",
+                    b: "Albuquerque",
+                    c: "Bartholomeu Dias",
+                    d: "George Oxdone"
+                },
+                correctOption: "b",
+                exam: "U.P. Lower Sub. (Pre) 2003"
+            },
+            {
+                id: 13,
+                question: "With reference to the entry of European powers into India, which one of the following statements is not correct?",
+                options: {
+                    a: "The Portuguese captured Goa in 1499",
+                    b: "The English opened their first factory in South India at Masulipatnam",
+                    c: "In Eastern India, the English company opened its first factory in Orissa in 1633",
+                    d: "Under the leadership of Dupleix, the French occupied Madras in 1746"
+                },
+                correctOption: "a",
+                exam: "I.A.S. (Pre) 2003"
+            },
+            {
+                id: 14,
+                question: "At which one of the following places in India did the Portuguese build their first fortress ?",
+                options: {
+                    a: "Anjediva",
+                    b: "Cannanore",
+                    c: "Cochin",
+                    d: "Goa"
+                },
+                correctOption: "c",
+                exam: "U.P.P.C.S. (Mains) 2010"
+            },
+            {
+                id: 15,
+                question: "Who were the first Europeans to set up sea trade centres in India?",
+                options: {
+                    a: "The English",
+                    b: "The French",
+                    c: "The Portuguese",
+                    d: "The Dutch"
+                },
+                correctOption: "c",
+                exam: "Uttarakhand P.C.S. (Pre) 2004"
+            },
+            {
+                id: 16,
+                question: "Among the following factories in Bengal, the one established by the Portuguese was :",
+                options: {
+                    a: "Bandel",
+                    b: "Chinsurah",
+                    c: "Hooghly",
+                    d: "Shrirampur"
+                },
+                correctOption: "c",
+                exam: "U.P.P.C.S. (Pre) 2004"
+            },
+            {
+                id: 17,
+                question: "With reference to Pondicherry (Now Puducherry), consider the following statements:\n\n1. The first European power to occupy Pondicherry were the Portuguese.\n2. The second European power to occupy Pondicherry were the French.\n3. The English never occupied Pondicherry.\n\nWhich of the statements given above is/are correct?",
+                options: {
+                    a: "1 only",
+                    b: "2 and 3",
+                    c: "3 only",
+                    d: "1, 2 and 3"
+                },
+                correctOption: "a",
+                exam: "U.P.P.C.S. (Mains) 2006"
+            },
+            {
+                id: 18,
+                question: "Hooghly was used as a base for piracy in the Bay of Bengal by :",
+                options: {
+                    a: "Portuguese",
+                    b: "French",
+                    c: "Danish",
+                    d: "British"
+                },
+                correctOption: "a",
+                exam: "I.A.S. (Pre) 1995"
+            },
+            {
+                id: 19,
+                question: "Who used Hooghly as a base for piracy in the Bay of Bengal?",
+                options: {
+                    a: "The Dutch",
+                    b: "The French",
+                    c: "The Portuguese",
+                    d: "The British",
+                    e: "None of the above/More than one of the above"
+                },
+                correctOption: "c",
+                exam: "65th B.P.S.C. (Pre) 2019"
+            },
+            {
+                id: 20,
+                question: "Who among the following was the founder of Calcutta ?",
+                options: {
+                    a: "Charles Ayar",
+                    b: "Job Charnock",
+                    c: "Garold Angiyar",
+                    d: "William Norris"
+                },
+                correctOption: "b",
+                exam: "U.P.P.C.S. (Spl) (Mains) 2004"
+            },
+            {
+                id: 21,
+                question: "Who founded Calcutta ?",
+                options: {
+                    a: "John Surman",
+                    b: "Vasco da Gama",
+                    c: "Warren Hastings",
+                    d: "Job Charnock"
+                },
+                correctOption: "d",
+                exam: "Uttarakhand P.C.S. (Mains) 2006"
+            },
+            {
+                id: 22,
+                question: "In India the First Municipal Corporation was set up in which one among the following places?",
+                options: {
+                    a: "Calcutta",
+                    b: "Madras",
+                    c: "Bombay",
+                    d: "Delhi"
+                },
+                correctOption: "b",
+                exam: "U.P.P.C.S. (Pre) 2021"
+            },
+            {
+                id: 23,
+                question: "The first to start a joint stock company to trade with India were :",
+                options: {
+                    a: "Portuguese",
+                    b: "Dutch",
+                    c: "French",
+                    d: "Danish"
+                },
+                correctOption: "b",
+                exam: "I.A.S. (Pre) 1994"
+            },
+            {
+                id: 24,
+                question: "Which one of the following is the correct statement?",
+                options: {
+                    a: "The modern Kochi was a Dutch colony till India’s Independence.",
+                    b: "The Dutch defeated the Portuguese and built Fort Williams in the modern Kochi.",
+                    c: "The modern Kochi was first a Dutch Colony before the Portuguese took over from them.",
+                    d: "The modern Kochi never became a part of the British colony."
+                },
+                correctOption: "b",
+                exam: "I.A.S. (Pre) 2005"
+            },
+            {
+                id: 25,
+                question: "With reference to Indian history, consider the following statements :\n\n1. The Dutch established their factories/warehouses on the east coast on lands granted to them by Gajapati rulers.\n2. Alfonso de Albuquerque captured Goa from the Bijapur Sultanate.\n3. The English East India Company established a factory at Madras on a plot of land leased from a representative of the Vijayanagara empire.\n\nWhich of the statements given above are correct?",
+                options: {
+                    a: "1 and 2 only",
+                    b: "2 and 3 only",
+                    c: "1 and 3 only",
+                    d: "1, 2 and 3"
+                },
+                correctOption: "b",
+                exam: "I.A.S. (Pre) 2022"
+            },
+            {
+                id: 26,
+                question: "The secret of success of East India Company in India was :",
+                options: {
+                    a: "Absence of Nationalism in India",
+                    b: "The company army received western training and they had modern arms.",
+                    c: "Indian Soldiers lacked fidelity consequently the one who paid them sufficient could have them on his service",
+                    d: "All the above three"
+                },
+                correctOption: "d",
+                exam: "U.P.P.C.S. (Pre) 1994"
+            },
+            {
+                id: 27,
+                question: "Which of the following British companies got the first charter permitting them to trade in India ?",
+                options: {
+                    a: "Levant Company",
+                    b: "East India Company",
+                    c: "The English Company trading to the East Indies",
+                    d: "Ostend Company"
+                },
+                correctOption: "a",
+                exam: "U.P.P.S.C. (R.I.) 2014"
+            },
+            {
+                id: 28,
+                question: "Which one of the following was the Emperor of India when the British East India Company was formed in London?",
+                options: {
+                    a: "Akbar",
+                    b: "Jahangir",
+                    c: "Shahjahan",
+                    d: "Aurangzeb"
+                },
+                correctOption: "a",
+                exam: "U.P.P.C.S. (Pre) 2012 | U.P. Lower Sub. (Pre) 2004"
+            },
+            {
+                id: 29,
+                question: "During the time of which Mughal Emperor did the English East India Company establish its first factory in India?",
+                options: {
+                    a: "Akbar",
+                    b: "Jahangir",
+                    c: "Shahjahan",
+                    d: "Aurangzeb"
+                },
+                correctOption: "b",
+                exam: "I.A.S. (Pre) 2009 | I.A.S. (Pre) 2008"
+            },
+            {
+                id: 30,
+                question: "Where in India did Britishers set up their first factory in 1613?",
+                options: {
+                    a: "Goa",
+                    b: "Hooghly in Bengal",
+                    c: "Amarkot",
+                    d: "Surat"
+                },
+                correctOption: "d",
+                exam: "39th B.P.S.C. (Pre) 1994"
+            },
+            {
+                id: 31,
+                question: "The first factory of the East India Company was established at –",
+                options: {
+                    a: "Pune",
+                    b: "Goa",
+                    c: "Pondicherry",
+                    d: "Surat"
+                },
+                correctOption: "d",
+                exam: "U.P.P.S.C. (GIC) 2010 | U.P.P.C.S. (Pre) 1990"
+            },
+            {
+                id: 32,
+                question: "Which of the British officials defeated Portuguese at Swally?",
+                options: {
+                    a: "William Hawkins",
+                    b: "Thomas Best",
+                    c: "Thomas Roe",
+                    d: "Josiah Child"
+                },
+                correctOption: "b",
+                exam: "44th B.P.S.C. (Pre) 2000"
+            },
+            {
+                id: 33,
+                question: "With reference to the captain Hawkins, which of the following statements is correct?\n(1) He came to India in 1611 as an envoy of James-I.\n(2) He was very well versed in Turkish language.",
+                options: {
+                    a: "Both (1) and (2)",
+                    b: "Only (1)",
+                    c: "Neither (1) nor (2)",
+                    d: "Only (2)"
+                },
+                correctOption: "d",
+                exam: "U.P.P.C.S. (Pre) 2023"
+            },
+            {
+                id: 34,
+                question: "In the first quarter of seventeenth century, in which of the following was/were the factory/factories of the English East India Company located?\n\n1. Broach\n2. Chicacole\n3. Trichinopoly\n\nSelect the correct answer using the code given below.",
+                options: {
+                    a: "1 only",
+                    b: "1 and 2",
+                    c: "3 only",
+                    d: "2 and 3"
+                },
+                correctOption: "a",
+                exam: "I.A.S. (Pre.) 2021"
+            },
+            {
+                id: 35,
+                question: "Which one of the following European trading company was the first to establish its factory at Surat ?",
+                options: {
+                    a: "The Dutch",
+                    b: "The English",
+                    c: "The French",
+                    d: "The Portuguese"
+                },
+                correctOption: "b",
+                exam: "U.P.P.C.S. (Mains) 2011"
+            },
+            {
+                id: 36,
+                question: "In the year 1613, where was the English East India Company given permission to set up a factory (trading post)?",
+                options: {
+                    a: "Bangalore",
+                    b: "Madras",
+                    c: "Masulipattam",
+                    d: "Surat"
+                },
+                correctOption: "d",
+                exam: "I.A.S. (Pre) 2006"
+            },
+            {
+                id: 37,
+                question: "Where was the Western Presidency situated in the early period of the East India Company?",
+                options: {
+                    a: "Surat",
+                    b: "Satara",
+                    c: "Bombay",
+                    d: "Panaji"
+                },
+                correctOption: "a",
+                exam: "M.P. P.C.S. (Pre) 2018"
+            },
+            {
+                id: 38,
+                question: "Bombay was taken over by the English East India Company from –",
+                options: {
+                    a: "The Dutch",
+                    b: "The French",
+                    c: "The Danish",
+                    d: "The Portuguese"
+                },
+                correctOption: "d",
+                exam: "Uttakhand P.C.S. (Pre) 2010"
+            },
+            {
+                id: 39,
+                question: "In which of the following year, was the authority of the British established over the fort of Prayagraj (U.P.)?",
+                options: {
+                    a: "1790 A.D.",
+                    b: "1792 A.D.",
+                    c: "1796 A.D.",
+                    d: "1797 A.D."
+                },
+                correctOption: null,
+                exam: "U.P. R.O./A.R.O. (Pre) 2021 | Ans. (*)"
+            },
+            {
+                id: 40,
+                question: "Which English Governor of East India Company in India was expelled by Aurangzeb –",
+                options: {
+                    a: "Angier",
+                    b: "Sir John Child",
+                    c: "Sir John Gayer",
+                    d: "Sir Nicholas Waite"
+                },
+                correctOption: "b",
+                exam: "M.P.P.C.S. (Pre) 2008"
+            },
+            {
+                id: 41,
+                question: "Which one of the following was the immediate cause of the First Carnatic War?",
+                options: {
+                    a: "Anglo-French Rivalry",
+                    b: "Austrian War of Succession",
+                    c: "Issues of Carnatic Succession",
+                    d: "Capture of French ships by the British"
+                },
+                correctOption: "d",
+                exam: "44th B.P.S.C. (Pre) 2000"
+            },
+            {
+                id: 42,
+                question: "Carnatic War was fought between :",
+                options: {
+                    a: "English and French",
+                    b: "English and Dutch",
+                    c: "English and Marathas",
+                    d: "Haider Ali and Marathas"
+                },
+                correctOption: "a",
+                exam: "U.P.P.C.S. (Pre) 1995"
+            },
+            {
+                id: 43,
+                question: "Match List-I with List-II and select the correct answer using the code given below the lists:\n\nList-I\nA. First Carnatic War\nB. Third Carnatic War\nC. Second Carnatic War\nD. First Mysore War\n\nList-II\n\n1. Ended by Treaty of Paris\n2. Britishers lost\n3. Inconclusive War\n4. Ended by Treaty of Aix La Chapelle\n\nCode :",
+                options: {
+                    a: "A-1, B-3, C-4, D-2",
+                    b: "A-2, B-4, C-1, D-3",
+                    c: "A-4, B-1, C-3, D-2",
+                    d: "A-3, B-1, C-4, D-2"
+                },
+                correctOption: "c",
+                exam: "U.P.P.C.S. (Pre) 2016"
+            },
+            {
+                id: 44,
+                question: "Which one of the following is not correctly matched?",
+                options: {
+                    a: "First battle of Karnataka – 1746-48",
+                    b: "Second battle of Karnataka – 1750-52",
+                    c: "Third battle of Karnataka – 1758-63",
+                    d: "Third battle of Panipat – 1761"
+                },
+                correctOption: "b",
+                exam: "U.P. G.I.C. 2017"
+            },
+            {
+                id: 45,
+                question: "What is/are not true in relation to 'Battle of Ambur'?\n(i) This battle was fought in 1752.\n(ii) In this battle, armies of Muzaffarjang, Chanda Sahib and French fought together against Anwar-ud-din.\n(iii) In this battle, army of Anwar-ud-din had to face defeat.",
+                options: {
+                    a: "(ii) and (iii)",
+                    b: "(i) and (iii)",
+                    c: "(i) and (ii)",
+                    d: "Only (i)"
+                },
+                correctOption: "d",
+                exam: "Chhattisgarh P.C.S. (Pre) 2023"
+            },
+            {
+                id: 46,
+                question: "Who among the following was the first European to initiate the policy of taking part in the quarrels of Indian Princess with a view to acquire territories?",
+                options: {
+                    a: "Clive",
+                    b: "Dupleix",
+                    c: "Albuquerque",
+                    d: "Warren Hastings"
+                },
+                correctOption: "b",
+                exam: "I.A.S. (Pre) 1996"
+            },
+            {
+                id: 47,
+                question: "In India, among the following locations, the French established their earliest factory at :",
+                options: {
+                    a: "Surat",
+                    b: "Pulicat",
+                    c: "Cochin",
+                    d: "Qasim Bazar"
+                },
+                correctOption: "a",
+                exam: "I.A.S. (Pre) 2003"
+            },
+            {
+                id: 48,
+                question: "French East India Company was constituted during the reign of-",
+                options: {
+                    a: "Louis XIV",
+                    b: "Louis XIII",
+                    c: "Louis XV",
+                    d: "Louis XVI"
+                },
+                correctOption: "a",
+                exam: "U.P.P.C.S. (Mains) 2014 | U.P. Lower Sub. (Pre) 2013"
+            },
+            {
+                id: 49,
+                question: "Who among the following is considered the founder of French Company in India :",
+                options: {
+                    a: "Richelieu",
+                    b: "Mazarin",
+                    c: "Colbert",
+                    d: "Franco Martin"
+                },
+                correctOption: "c",
+                exam: "U.P.P.C.S. (Mains) 2003"
+            },
+            {
+                id: 50,
+                question: "Which of the following factories of Bengal was established by the Dutch ?",
+                options: {
+                    a: "Bandel",
+                    b: "Chinsurah",
+                    c: "Hooghly",
+                    d: "Srirampur"
+                },
+                correctOption: "b",
+                exam: "U.P. Lower Sub. (Spl) (Pre) 2010 | Ans. (b) & (c)"
+            },
+            {
+                id: 51,
+                question: "Dutch East India company established its factory at Patna in which year ?",
+                options: {
+                    a: "1601",
+                    b: "1632",
+                    c: "1774",
+                    d: "1651",
+                    e: "None of the above/More than one of the above"
+                },
+                correctOption: "b",
+                exam: "65th B.P.S.C. (Pre) 2019"
+            },
+            {
+                id: 52,
+                question: "The Dutch East India Company established its factory at Patna in which year?",
+                options: {
+                    a: "1635",
+                    b: "1632",
+                    c: "1643",
+                    d: "1648"
+                },
+                correctOption: "b",
+                exam: "69th B.P.S.C. (Pre) 2023"
+            },
+            {
+                id: 53,
+                question: "Match the following Dutch factories with their years of establishment :\n\nA. Bimlipatam\nB. Karaikal\nC. Cochin\nD. Chinsura\n\n(i) 1653\n(ii) 1645\n(iii) 1641\n(iv) 1663\n\nCode :",
+                options: {
+                    a: "A-i, B-ii, C-iv, D-iii",
+                    b: "A-iii, B-ii, C-iv, D-i",
+                    c: "A-iii, B-iv, C-ii, D-i",
+                    d: "A-i, B-ii, C-iii, D-iv"
+                },
+                correctOption: "b",
+                exam: "Chhattisgarh P.C.S. (Pre) 2022"
+            },
+            {
+                id: 54,
+                question: "The French failed to establish power in the Deccan because:",
+                options: {
+                    a: "Dupleix was not a capable general",
+                    b: "The English had a strong army",
+                    c: "The French were not liked by the Indians",
+                    d: "Pondicherry was not a strategic centre"
+                },
+                correctOption: "b",
+                exam: "U.P.P.C.S. (Pre) 1998"
+            },
+            {
+                id: 55,
+                question: "The following European Powers entered into Indian trade at one time or the other :\n\nThe English\n\nThe Dutch\n\nThe French\n\nThe Portuguese\n\nSelect the correct chronological order of their entry from the code given below :\n\nCode:",
+                options: {
+                    a: "1,2,3,4",
+                    b: "4,2,1,3",
+                    c: "3,4,2,1",
+                    d: "2,3,4,1"
+                },
+                correctOption: "b",
+                exam: "U.P.P.C.S. (Pre) 1997"
+            },
+            {
+                id: 56,
+                question: "Match List-I with List-II and select the correct answer from the code given below the lists:\n\nList-I\nA. Pondicherry\nB. Goa\nC. Tranquebar\nD. Sadras\n\nList-II\n\n1. Dutch\n2. French\n3. Portuguese\n4. Danish (Dane)\n\nCode :",
+                options: {
+                    a: "A-2, B-3, C-4, D-1",
+                    b: "A-1, B-2, C-3, D-4",
+                    c: "A-3, B-4, C-1, D-2",
+                    d: "A-4, B-1, C-2, D-3"
+                },
+                correctOption: "a",
+                exam: "U.P. R.O./A.R.O. (Pre) 2016"
+            },
+            {
+                id: 57,
+                question: "Identify the region from where Europeans got best shora (Saltpetre) and opium –",
+                options: {
+                    a: "Bihar",
+                    b: "Gujarat",
+                    c: "Bengal",
+                    d: "Madras"
+                },
+                correctOption: "a",
+                exam: "40th B.P.S.C. (Pre) 1995"
+            },
+            {
+                id: 58,
+                question: "During British rule which region of India was famous for the production of opium?",
+                options: {
+                    a: "Bihar",
+                    b: "Southern India",
+                    c: "Gujarat",
+                    d: "Assam"
+                },
+                correctOption: "a",
+                exam: "47th B.P.S.C. (Pre) 2005"
+            },
+            {
+                id: 59,
+                question: "Who, among the following Europeans, was the last to come to pre-independence India as traders?",
+                options: {
+                    a: "Dutch",
+                    b: "English",
+                    c: "French",
+                    d: "Portuguese"
+                },
+                correctOption: "c",
+                exam: "I.A.S. (Pre) 2007"
+            },
+            {
+                id: 60,
+                question: "In which of the following places the Dutch established their trading centre in India?",
+                options: {
+                    a: "Nagappattinam, Chinsura, Machilipatnam",
+                    b: "Surat, Bharuch, Agra",
+                    c: "Cochin, Ahmedabad, Patna",
+                    d: "All the above"
+                },
+                correctOption: "d",
+                exam: "U.P.P.C.S. (Pre) 2017"
+            },
+            {
+                id: 61,
+                question: "Consider the following\n\n1. Assessment of land revenue on the basis of nature of the soil and the quality of crops.\n2. Use of mobile cannons in warfare.\n3. Cultivation of tobacco and red chillies.\n\nWhich of the above was/were introduced into India by the English?",
+                options: {
+                    a: "Only 1",
+                    b: "1 and 2",
+                    c: "2 and 3",
+                    d: "None of these"
+                },
+                correctOption: "d",
+                exam: "I.A.S. (Pre) 2012"
+            },
+            {
+                id: 62,
+                question: "Who remarked about the East India Company that \"The Company is an anomaly but it is part of a system where everything is an anomaly\"?",
+                options: {
+                    a: "Warren Hastings",
+                    b: "G.B. Macaulay",
+                    c: "Lord Clive",
+                    d: "Henry Dundas"
+                },
+                correctOption: "b",
+                exam: "U.P.P.C.S. (Pre) 2017"
+            },
+            {
+                id: 63,
+                question: "With reference to the Treaty of “Aix-la-Chapelle-1748” which of the following statements is/are correct?\n\n1. The 1st Carnatic War was ended.\n2. The English got back Madras.\n\nSelect the correct answer using the codes given below.\n\nCodes :",
+                options: {
+                    a: "1 only",
+                    b: "2 only",
+                    c: "Both 1 and 2",
+                    d: "Neither 1 nor 2"
+                },
+                correctOption: "c",
+                exam: "U.P.P.C.S. (Pre) 2020"
+            },
+            {
+                id: 64,
+                question: "With reference to \"the causes of the success of British and failure of the French in India\" which of the following statements is/are correct?\n\n1. Getting huge wealth and manpower from Conquest of Bengal by British.\n2. Naval superiority of the British.\n\nSelect the correct answer from the codes given below.\n\nCodes:",
+                options: {
+                    a: "Only 1",
+                    b: "Only 2",
+                    c: "Both 1 and 2",
+                    d: "Neither 1 nor 2"
+                },
+                correctOption: "c",
+                exam: "U.P.R.O./A.R.O. (Pre) (Re-Exam) 2016"
+            }
+        ];
+
+        /* ===============================
+           NOTHING BELOW THIS NEEDS CHANGE
+           =============================== */
+
+        const state = {
+            answers: {}, // qid -> option key or null
+            isSubmitted: false,
+            startTime: null,
+            endTime: null,
+            timerInterval: null,
+            remainingSeconds: 0,
+            totalSeconds: 0
+        };
+
+        const quizContainer = document.getElementById("quiz-container");
+        const resultSummary = document.getElementById("result-summary");
+        const notesSection = document.getElementById("notes-section");
+        const notesContent = document.getElementById("notes-content");
+        const timerEl = document.getElementById("timer");
+        const submitBtn = document.getElementById("submit-btn");
+        const resetBtn = document.getElementById("reset-btn");
+        const printNotesBtn = document.getElementById("print-notes-btn");
+
+        function formatText(text) {
+            return text.replace(/\n/g, "<br>");
+        }
+
+        function renderQuiz() {
+            quizContainer.innerHTML = "";
+            quizData.forEach(q => {
+                const box = document.createElement("div");
+                box.className = "question-box";
+                box.dataset.qid = q.id;
+
+                const header = document.createElement("div");
+                header.className = "question-header";
+                header.innerHTML = "<span class='q-number'>" + q.id + ".</span> " +
+                    "<span class='question-text'>" + formatText(q.question) + "</span>";
+                box.appendChild(header);
+
+                const optionsDiv = document.createElement("div");
+                optionsDiv.className = "options";
+
+                Object.keys(q.options).forEach(key => {
+                    const label = document.createElement("label");
+                    label.className = "option-label";
+                    label.dataset.qid = q.id;
+                    label.dataset.optionKey = key;
+
+                    const input = document.createElement("input");
+                    input.type = "radio";
+                    input.name = "q" + q.id;
+                    input.value = key;
+
+                    const keySpan = document.createElement("span");
+                    keySpan.textContent = "(" + key + ") ";
+
+                    const textSpan = document.createElement("span");
+                    textSpan.className = "option-text";
+                    textSpan.textContent = q.options[key];
+
+                    if (key === q.correctOption) {
+                        textSpan.classList.add("correct-option-text");
+                    }
+
+                    label.appendChild(input);
+                    label.appendChild(keySpan);
+                    label.appendChild(textSpan);
+
+                    label.addEventListener("click", onOptionClick);
+                    optionsDiv.appendChild(label);
+                });
+
+                box.appendChild(optionsDiv);
+
+                const examDiv = document.createElement("div");
+                examDiv.className = "exam-name";
+                examDiv.textContent = q.exam || "";
+                box.appendChild(examDiv);
+
+                quizContainer.appendChild(box);
+
+                state.answers[q.id] = null;
+            });
+        }
+
+        function startTimerIfNeeded() {
+            if (state.startTime !== null || state.isSubmitted) return;
+            state.startTime = new Date();
+            state.endTime = null;
+            state.timerInterval = setInterval(() => {
+                state.remainingSeconds--;
+                if (state.remainingSeconds <= 0) {
+                    state.remainingSeconds = 0;
+                    updateTimerDisplay();
+                    clearInterval(state.timerInterval);
+                    if (!state.isSubmitted) {
+                        submitQuiz(true);
+                    }
+                } else {
+                    updateTimerDisplay();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const mins = String(Math.floor(state.remainingSeconds / 60)).padStart(2, "0");
+            const secs = String(state.remainingSeconds % 60).padStart(2, "0");
+            timerEl.textContent = "Time left: " + mins + ":" + secs;
+        }
+
+        function onOptionClick(event) {
+            event.preventDefault(); // we'll handle checking manually
+
+            if (state.isSubmitted) return;
+
+            const label = event.currentTarget;
+            const qid = parseInt(label.dataset.qid, 10);
+            const optionKey = label.dataset.optionKey;
+
+            const box = document.querySelector('.question-box[data-qid="' + qid + '"]');
+            const inputs = box.querySelectorAll('input[type="radio"]');
+
+            // Start timer on first interaction
+            startTimerIfNeeded();
+
+            const currentAnswer = state.answers[qid];
+
+            if (currentAnswer === optionKey) {
+                // Unselect
+                state.answers[qid] = null;
+                inputs.forEach(inp => {
+                    if (inp.value === optionKey) {
+                        inp.checked = false;
+                    }
+                });
+                box.classList.remove("correct", "incorrect", "show-correct", "unanswered");
+                box.classList.add("neutral");
+            } else {
+                // Select this option
+                state.answers[qid] = optionKey;
+                inputs.forEach(inp => {
+                    inp.checked = (inp.value === optionKey);
+                });
+
+                box.classList.remove("neutral", "unanswered");
+                if (optionKey === getQuestionById(qid).correctOption) {
+                    box.classList.add("correct");
+                    box.classList.remove("incorrect");
+                } else {
+                    box.classList.add("incorrect");
+                    box.classList.remove("correct");
+                }
+                // Show correct option in bold
+                box.classList.add("show-correct");
+            }
+        }
+
+        function getQuestionById(id) {
+            return quizData.find(q => q.id === id);
+        }
+
+        function computeStats() {
+            let total = quizData.length;
+            let attempted = 0;
+            let correct = 0;
+            let incorrect = 0;
+            let incorrectQs = [];
+            let unattemptedQs = [];
+
+            quizData.forEach(q => {
+                const ans = state.answers[q.id];
+                if (ans === null) {
+                    unattemptedQs.push(q.id);
+                } else {
+                    attempted++;
+                    if (ans === q.correctOption) {
+                        correct++;
+                    } else {
+                        incorrect++;
+                        incorrectQs.push(q.id);
+                    }
+                }
+            });
+
+            const accuracy = attempted > 0 ? (correct / attempted) * 100 : 0;
+            const marks = correct - (incorrect / 3);
+
+            let timeTakenSeconds = 0;
+            if (state.startTime && state.endTime) {
+                timeTakenSeconds = Math.round((state.endTime - state.startTime) / 1000);
+            }
+            const tMin = Math.floor(timeTakenSeconds / 60);
+            const tSec = timeTakenSeconds % 60;
+            const timeTakenStr = tMin + " min " + tSec + " sec";
+
+            return {
+                total,
+                attempted,
+                notAttempted: total - attempted,
+                correct,
+                incorrect,
+                accuracy,
+                marks,
+                incorrectQs,
+                unattemptedQs,
+                timeTakenStr
+            };
+        }
+
+        function submitQuiz(auto = false) {
+            if (state.isSubmitted) return;
+
+            if (!state.startTime) {
+                // If no interaction happened, start and end now for consistency
+                state.startTime = new Date();
+            }
+            state.endTime = new Date();
+            state.isSubmitted = true;
+            if (state.timerInterval) {
+                clearInterval(state.timerInterval);
+            }
+
+            const stats = computeStats();
+
+            // Unattempted: keep original colour
+            quizData.forEach(q => {
+                const box = document.querySelector('.question-box[data-qid="' + q.id + '"]');
+                if (state.answers[q.id] === null) {
+                    box.classList.remove("correct", "incorrect", "show-correct", "unanswered");
+                    box.classList.add("neutral");
+                } else {
+                    box.classList.add("show-correct");
+                    box.classList.remove("unanswered");
+                }
+            });
+
+            renderSummary(stats, auto);
+            renderRevisionNotes(stats);
+        }
+
+        function renderSummary(stats, auto) {
+            resultSummary.classList.remove("hidden");
+            resultSummary.innerHTML = "";
+
+            const heading = document.createElement("h2");
+            heading.textContent = "Quiz Summary";
+            resultSummary.appendChild(heading);
+
+            const table = document.createElement("table");
+            const rows = [
+                ["Total Questions", stats.total],
+                ["Attempted", stats.attempted],
+                ["Not Attempted", stats.notAttempted],
+                ["Correct", stats.correct],
+                ["Incorrect", stats.incorrect],
+                ["Accuracy %", stats.accuracy.toFixed(2)],
+                ["Marks (1, -1/3)", stats.marks.toFixed(2)],
+                ["Time Taken", stats.timeTakenStr],
+                ["Incorrect Q. Nos.", stats.incorrectQs.length ? stats.incorrectQs.join(", ") : "None"],
+                ["Unattempted Q. Nos.", stats.unattemptedQs.length ? stats.unattemptedQs.join(", ") : "None"]
+            ];
+
+            rows.forEach(([label, value]) => {
+                const tr = document.createElement("tr");
+                const th = document.createElement("th");
+                th.textContent = label;
+                const td = document.createElement("td");
+                td.textContent = value;
+                tr.appendChild(th);
+                tr.appendChild(td);
+                table.appendChild(tr);
+            });
+
+            resultSummary.appendChild(table);
+
+            const printDiv = document.createElement("div");
+            printDiv.className = "print-buttons";
+            const printBtn = document.createElement("button");
+            printBtn.textContent = "Print / Save Summary as PDF";
+            printBtn.addEventListener("click", printSummary);
+            printDiv.appendChild(printBtn);
+
+            resultSummary.appendChild(printDiv);
+
+            if (auto) {
+                const autoNote = document.createElement("p");
+                autoNote.style.marginTop = "8px";
+                autoNote.style.fontStyle = "italic";
+                autoNote.textContent = "Note: Quiz was auto-submitted when time ran out.";
+                resultSummary.appendChild(autoNote);
+            }
+        }
+
+        function getCorrectAnswerText(q) {
+            const correctKey = q.correctOption;
+            const correctTextRaw = q.options[correctKey];
+            if (!correctTextRaw) {
+                return "Answer key not specified";
+            }
+            const lower = correctTextRaw.toLowerCase();
+
+            if (lower.includes("all of the above")) {
+                const expandedParts = Object.keys(q.options)
+                    .filter(k => k !== correctKey)
+                    .map(k => "(" + k + ") " + q.options[k]);
+                return expandedParts.join("; ");
+            }
+
+            if (lower.includes("more than one")) {
+                const expandedParts = Object.keys(q.options)
+                    .filter(k => k !== correctKey)
+                    .map(k => "(" + k + ") " + q.options[k]);
+                return expandedParts.join("; ");
+            }
+
+            return "(" + correctKey + ") " + correctTextRaw;
+        }
+
+        function renderRevisionNotes(stats) {
+            notesContent.innerHTML = "";
+            const notes = [];
+
+            quizData.forEach(q => {
+                const ans = state.answers[q.id];
+                if (ans === q.correctOption && ans !== null) {
+                    return;
+                }
+                const noteP = document.createElement("p");
+                const questionText = q.id + ". " + q.question.replace(/\n/g, " ");
+                const correctAnswerText = getCorrectAnswerText(q);
+
+                // Entire question in bold in notes
+                noteP.innerHTML =
+                    "<strong>Q" + q.id + ". " + questionText + "</strong>" +
+                    "<br><em>Correct Answer:</em> " + correctAnswerText;
+
+                notesContent.appendChild(noteP);
+                notes.push(noteP);
+            });
+
+            if (notes.length > 0) {
+                notesSection.classList.remove("hidden");
+            } else {
+                notesSection.classList.add("hidden");
+            }
+        }
+
+        function resetQuiz() {
+            if (state.timerInterval) {
+                clearInterval(state.timerInterval);
+            }
+            state.isSubmitted = false;
+            state.startTime = null;
+            state.endTime = null;
+            state.totalSeconds = quizData.length * 15; // 15 sec per question
+            state.remainingSeconds = state.totalSeconds;
+            state.answers = {};
+            quizData.forEach(q => {
+                state.answers[q.id] = null;
+            });
+            renderQuiz();
+            resultSummary.classList.add("hidden");
+            notesSection.classList.add("hidden");
+            notesContent.innerHTML = "";
+            updateTimerDisplay();
+        }
+
+        function printSummary() {
+            const summaryHtml = resultSummary.innerHTML;
+            const win = window.open("", "_blank");
+            win.document.write("<html><head><title>Quiz Summary</title></head><body>");
+            win.document.write("<h2>Quiz Summary</h2>");
+            win.document.write(summaryHtml);
+            win.document.write("</body></html>");
+            win.document.close();
+            win.focus();
+            win.print();
+        }
+
+        function printNotes() {
+            if (!notesContent.innerHTML.trim()) return;
+            const notesHtml = notesContent.innerHTML;
+            const win = window.open("", "_blank");
+            win.document.write("<html><head><title>Revision Notes</title></head><body>");
+            win.document.write("<h2>Revision Notes</h2>");
+            win.document.write(notesHtml);
+            win.document.write("</body></html>");
+            win.document.close();
+            win.focus();
+            win.print();
+        }
+
+        // Initial setup
+        resetQuiz();
+
+        submitBtn.addEventListener("click", () => submitQuiz(false));
+        resetBtn.addEventListener("click", resetQuiz);
+        printNotesBtn.addEventListener("click", printNotes);
+    </script>
+</body>
+</html>
