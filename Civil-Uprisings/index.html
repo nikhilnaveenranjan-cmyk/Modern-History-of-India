@@ -1,0 +1,1733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Tribal & Peasant Uprisings – Quiz</title>
+    <style>
+        :root {
+            --question-initial-bg: #fffde7; /* very light yellow (initial) */
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 17px;
+            margin: 0;
+            padding: 16px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            margin-top: 0;
+            margin-bottom: 16px;
+            text-align: left;
+        }
+        #quiz-container {
+            width: 100%;
+        }
+        .question-box {
+            width: 100%;
+            background-color: var(--question-initial-bg);
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 12px 14px 8px 14px;
+            margin-bottom: 12px;
+            position: relative;
+        }
+        .question-header {
+            margin-bottom: 6px;
+        }
+        .question-text {
+            font-weight: bold; /* Questions in bold, not options */
+        }
+        .options {
+            margin-top: 4px;
+            margin-left: 20px;
+        }
+        .option-label {
+            display: block;
+            margin: 3px 0;
+            cursor: pointer;
+        }
+        .option-label input[type="radio"] {
+            margin-right: 6px;
+        }
+        .exam-name {
+            margin-top: 6px;
+            text-align: right;
+            font-size: 0.9em;
+            font-style: italic;
+        }
+        .question-box.correct {
+            background-color: #d4edda; /* light green */
+        }
+        .question-box.incorrect {
+            background-color: #f8d7da; /* light red */
+        }
+        .question-box.neutral {
+            background-color: var(--question-initial-bg);
+        }
+        .question-box.unanswered {
+            background-color: var(--question-initial-bg);
+        }
+        /* Questions with a '*' marked option (initial state) */
+        .question-box.star-marked {
+            background-color: #e3f2fd; /* very light sky blue */
+        }
+        .question-box.show-correct .correct-option-text {
+            font-weight: bold;
+            text-decoration: underline;
+        }
+        /* Explanation block (hidden by default, shown only on wrong answer) */
+        .explanation {
+            margin-top: 8px;
+            padding-top: 6px;
+            border-top: 1px dashed #ccc;
+            font-size: 0.95em;
+            font-style: italic;
+        }
+        #controls {
+            margin-top: 16px;
+            display: flex;
+            gap: 12px;
+        }
+        button {
+            font-size: 16px;
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: 1px solid #555;
+            cursor: pointer;
+            background-color: #ffffff;
+        }
+        button:hover {
+            filter: brightness(0.97);
+        }
+
+        /* TIMER + PAUSE/RESUME CONTAINER */
+        #timer-container {
+            position: fixed;
+            bottom: 10px;
+            right: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            z-index: 999;
+        }
+        #timer {
+            padding: 6px 10px;
+            background-color: #222;
+            color: #fff;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+        #pause-resume-btn {
+            font-size: 13px;
+            padding: 4px 8px;
+        }
+
+        #result-summary, #notes-section {
+            margin-top: 18px;
+            padding: 12px;
+            background-color: #ffffff;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+        #result-summary.hidden, #notes-section.hidden {
+            display: none;
+        }
+        #result-summary table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        #result-summary th, #result-summary td {
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        #notes-content p {
+            margin: 8px 0;
+        }
+        .print-buttons {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        @media print {
+            #timer-container, #controls {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Tribal &amp; Peasant Uprisings – Practice Set (1–85)</h1>
+
+    <div id="quiz-container"></div>
+
+    <div id="controls">
+        <button id="submit-btn">Submit Quiz</button>
+        <button id="reset-btn">Reset Quiz</button>
+    </div>
+
+    <div id="result-summary" class="hidden"></div>
+
+    <div id="notes-section" class="hidden">
+        <h2>Revision Notes (Wrong &amp; Unattempted Only)</h2>
+        <div id="notes-content"></div>
+        <div class="print-buttons">
+            <button id="print-notes-btn">Print / Save Notes as PDF</button>
+        </div>
+    </div>
+
+    <!-- TIMER + PAUSE/RESUME BUTTON -->
+    <div id="timer-container">
+        <div id="timer">Time left: --:--</div>
+        <button id="pause-resume-btn">Pause Timer</button>
+    </div>
+
+    <script>
+        /* =========================================
+           EDIT ONLY THIS: quizData
+           ========================================= */
+        const quizData = [
+            {
+                id: 1,
+                question: "Which one of the following upheavals took place in Bengal immediately after Revolt of 1857?",
+                options: {
+                    a: "Sanyasi",
+                    b: "Santhal Rebellion",
+                    c: "Indigo revolt",
+                    d: "Pabna Disturbances"
+                },
+                correctOption: "c",
+                exam: "I.A.S. (Pre) 1994",
+                explanation: "The Indigo Revolt (1859-60) took place in Bengal immediately after the revolt of 1857. Sanyasi Rebellion occurred in 1763-1800, Santhal Rebellion occurred in 1855-56, and Pabna uprising took place in 1873-76. Indigo Revolt began in Govindpur village of Nadia district in West Bengal led by two former employees of indigo producers. Digambar Viswas and Vishnu Viswas organized the peasants into a counterforce and refused to sow indigo. This indigo revolt of Bengal was directed against British planters who forced peasants to take advances and sign fraudulent contracts which forced the peasants to grow Indigo under terms that were least profitable to them. In September, 1859 all the cultivators revolted against the landlords. The agitation spread to regions like Nadia, Pabana, Khulna, Dhaka, Malda, Dinajpur, etc. All indigo factories were shut down due to this strike. The intellectual class of Bengal expressed support for the Movement through their articles and rallies. The editor of \"Hindu Patriot\" Harishchandra Mukherjee played a significant role in this agitation. This revolt was vividly portrayed by Dinbandhu Mitra in his play Neel Darpan."
+            },
+            {
+                id: 2,
+                question: "The Indigo Rebellion was about",
+                options: {
+                    a: "the peasant not wanting to grow indigo but being forced",
+                    b: "the peasant wanting to grow indigo but being forced not to",
+                    c: "the peasant not wanting to grow indigo but being forced to grow at a price that was unacceptable",
+                    d: "a protest movement that carried and indigo-coloured flag",
+                    e: "None of the above/More than one of the above"
+                },
+                correctOption: "c",
+                exam: "B.P.S.C. (Pre) 2018",
+                explanation: "The Indigo Rebellion was about the peasants not wanting to grow indigo but being forced to grow it at a price that was unacceptable. See the explanation of the above question."
+            },
+            {
+                id: 3,
+                question: "Who is the author of ‘Neel Darpan’ a book written on the miserable condition of indigo farmers?",
+                options: {
+                    a: "Bankim Chandra Chatterji",
+                    b: "Dinbandhu Mitra",
+                    c: "Sharat Chandra Chatterji",
+                    d: "Rabindranath Tagore"
+                },
+                correctOption: "b",
+                exam: "42nd B.P.S.C. (Pre) 1997",
+                explanation: "‘Neel Darpan’ is a famous work depicting the miserable condition of indigo farmers and was written by Dinbandhu Mitra. See the explanation of the above question."
+            },
+            {
+                id: 4,
+                question: "Who wrote the famous play, Neel Darpan in which oppression of Indigo farmers was displayed?",
+                options: {
+                    a: "Sharat Chandra Chatterjee",
+                    b: "Rabindranath Tagore",
+                    c: "Barindra Ghosh",
+                    d: "Dinabandhu Mitra",
+                    e: "None of the above/More than one of the above"
+                },
+                correctOption: "d",
+                exam: "66th B.P.S.C. (Pre) 2020",
+                explanation: "The famous play ‘Neel Darpan’, which portrayed the oppression of indigo farmers, was written by Dinabandhu Mitra. See the explanation of the above question."
+            },
+            {
+                id: 5,
+                question: "Who was the author of the play ‘Nil Darpan’?",
+                options: {
+                    a: "Tara Nath Bandyopadhyay",
+                    b: "Tara Nath Ghosh",
+                    c: "Dinabandhu Mitra",
+                    d: "Bankim Chandra Chatterjee"
+                },
+                correctOption: "c",
+                exam: "U.P.P.C.S. (Mains) 2015",
+                explanation: "The author of the play ‘Nil Darpan’ was Dinabandhu Mitra. See the explanation of the above question."
+            },
+            {
+                id: 6,
+                question: "Indigo cultivation in India declined by the beginning of the 20th century because of :",
+                options: {
+                    a: "peasant resistance to the oppressive conduct of planters",
+                    b: "its unprofitability in the world market because of new inventions",
+                    c: "national leaders opposition to the cultivation of indigo",
+                    d: "Government control over the planters"
+                },
+                correctOption: "b",
+                exam: "I.A.S. (Pre) 2020",
+                explanation: "During early 20th century, indigo use declined drastically in Europe due to increasing use of newly discovered artificial colours and their respective technology. Due to this, indigo cultivation became unprofitable in the world market and hence its cultivation declined in India beginning in the 20th century."
+            },
+            {
+                id: 7,
+                question: "Consider the following statements with reference to Bankim Chandra Chattopadhyay:\n\n1. He was the first graduate of Calcutta University.\n2. 'Sitaram' was his last Novel.\n\nSelect the correct answer using the code given below:\nCode -",
+                options: {
+                    a: "Only 2",
+                    b: "Only 1",
+                    c: "Neither 1 nor 2",
+                    d: "Both 1 and 2"
+                },
+                correctOption: "d",
+                exam: "U.P. R.O./A.R.O. (Pre) 2023",
+                explanation: "Joddu Nath Bose and Bankim Chandra Chattopadhyay were the first graduates of Calcutta University. Hence statement (1) is correct. 'Sitaram' was the last novel of Bankim Chandra Chattopadhyay. Hence statement (2) is also correct."
+            },
+            {
+                id: 8,
+                question: "Who was the composer of the song ‘Vande Mataram’?",
+                options: {
+                    a: "Rabindra Nath Tagore",
+                    b: "Ramdhari Singh Dinkar",
+                    c: "Sarojini Naidu",
+                    d: "Bankimchandra Chatterjee"
+                },
+                correctOption: "d",
+                exam: "Chhattisgarh P.C.S. (Pre) 2005 / Uttarakhand U.D.A./L.D.A. (Mains) 2007",
+                explanation: "The song ‘Vande Mataram’ was composed by Bankimchandra Chatterjee."
+            },
+            {
+                id: 9,
+                question: "In Anandamath of Bankim Chandra Chatterjee, which revolt is mentioned?",
+                options: {
+                    a: "Sannyasi",
+                    b: "Kuka",
+                    c: "Santhal",
+                    d: "Neel (Indigo)",
+                    e: "None of the above/More than one of the above"
+                },
+                correctOption: "a",
+                exam: "67th B.P.S.C. (Pre) 2022",
+                explanation: "In ‘Anandamath’ of Bankim Chandra Chatterjee, the Sannyasi revolt is mentioned. See the explanation of the above question."
+            },
+            {
+                id: 10,
+                question: "The theme of the novel Anandmath is based on:",
+                options: {
+                    a: "Chuar Revolt",
+                    b: "Sanyasi Revolt",
+                    c: "Poligar Revolt",
+                    d: "Talukdar’s Revolt"
+                },
+                correctOption: "b",
+                exam: "U.P.P.C.S. (Pre) 1998",
+                explanation: "The theme of the novel ‘Anandmath’ is based on the Sanyasi Revolt. See the explanation of the above question."
+            },
+            {
+                id: 11,
+                question: "Which one of the following revolts was made famous by Bankim Chandra Chatterjee in his novel ‘Anand Math’?",
+                options: {
+                    a: "Bhil uprising",
+                    b: "Rangpur and Dinaisur uprising",
+                    c: "Bishnupur and Birbhum rebellion",
+                    d: "Sanyasi rebellion"
+                },
+                correctOption: "d",
+                exam: "I.A.S. (Pre) 2006",
+                explanation: "Bankim Chandra Chatterjee made the Sanyasi rebellion famous through his novel ‘Anand Math’. See the explanation of the above question."
+            },
+            {
+                id: 12,
+                question: "Who among the following made ‘Sanyasi Rebellion’ famous through his writings?",
+                options: {
+                    a: "Din Bandhu Mitra",
+                    b: "Bankim Chandra Chatterjee",
+                    c: "Sisir Kumar Ghosh",
+                    d: "Harish Chandra"
+                },
+                correctOption: "b",
+                exam: "U.P.P.C.S. (Mains) 2017",
+                explanation: "Bankim Chandra Chatterjee made the ‘Sanyasi Rebellion’ famous through his writings. See the explanation of the above question."
+            },
+            {
+                id: 13,
+                question: "The theme of Bankim Chandra Chatterjee’s famous novel ‘Anand Math’ is based on",
+                options: {
+                    a: "Chuar revolt",
+                    b: "Rangpur and Dinaisur revolt",
+                    c: "Vishnupur and Veerbhum revolt",
+                    d: "Sanyasi revolt"
+                },
+                correctOption: "d",
+                exam: "U.P.P.C.S. (Pre) 2015",
+                explanation: "The theme of Bankim Chandra Chatterjee’s famous novel ‘Anand Math’ is based on the Sanyasi revolt. See the explanation of the above question."
+            },
+            {
+                id: 14,
+                question: "Which one of the following pairs is not correctly matched?\n\nRevolt — Year",
+                options: {
+                    a: "Pabna revolt – 1873",
+                    b: "Deccan Kisan revolt – 1875",
+                    c: "*Sanyasi revolt – 1894",
+                    d: "Kol uprising – 1870"
+                },
+                correctOption: "c",
+                exam: "U.P.P.C.S. (Pre) 2017",
+                explanation: "The correctly matched list is as follows: Pabna revolt – 1873-76 AD; Deccan Kisan revolt – 1875 AD; Sanyasi revolt – 1763-1800 AD; Kol uprising – 1831-32 AD."
+            },
+            {
+                id: 15,
+                question: "What was the purpose of Barhiyataal resistance in Munger?",
+                options: {
+                    a: "Demand of Bakast land restoration",
+                    b: "Muslim peasants may not be exploited",
+                    c: "Abolishment of Zamindari custom",
+                    d: "Beginning of class struggle"
+                },
+                correctOption: "a",
+                exam: "39th B.P.S.C. (Pre) 1994",
+                explanation: "The main purpose of Barhiyataal revolt was the demand for restoration of Bakasht land."
+            },
+            {
+                id: 16,
+                question: "Chief centre of Wahabi Movement during 19th century was:",
+                options: {
+                    a: "Lahore",
+                    b: "Patna",
+                    c: "Amritsar",
+                    d: "Pune"
+                },
+                correctOption: "b",
+                exam: "U.P.P.C.S. (Pre) 1994",
+                explanation: "Wahabi Movement offered a serious and organized threat to British supremacy in India during the 19th century. The movement was led by Syed Ahmed Barelavi, who was greatly influenced by the teachings of Abdul Wahab of Arabia and Shah Walliulah, the saint of Delhi. It was a revivalist movement that stated that the return to the true spirit of Islam was the only way to get rid of the socio-political oppression. Through the efforts of Syed Ahmad, Wahabi ideology was spread in Kabul, North-West Frontier Province, Bengal, Bihar and Central Provincial regions. In 1830 Syed occupied Peshawar and sometimes issued coins bearing his name but later in the following year Syed Ahmed lost his life in the Battle of Balakot. Patna became the centre of the Wahabi Movement after the death of Syed Ahmad."
+            },
+            {
+                id: 17,
+                question: "Kuka Movement was organized by –",
+                options: {
+                    a: "Guru Ram Das",
+                    b: "Guru Nanak",
+                    c: "Guru Ram Singh",
+                    d: "Guru Gobind Singh"
+                },
+                correctOption: "c",
+                exam: "45th B.P.S.C. (Pre) 2001",
+                explanation: "The Kuka Movement was similar to the Wahabi Movement. Both movements began as religious revolts but converted into political movements, which had a general ideology of the removal of British rule from India. In Punjab, Kuka Movement was initiated by Bhagat Jawahar Mal in 1840s who was known as Sian Sahib. The origin of the Kuka Movement had its roots in the religious purification of Sikhism. The leader of Kuka Movement, Ram Singh, was expelled to Rangoon in 1872 where he died in 1885."
+            },
+            {
+                id: 18,
+                question: "Kuka Movement was founded in",
+                options: {
+                    a: "Bengal",
+                    b: "Bihar",
+                    c: "Punjab",
+                    d: "Maharashtra"
+                },
+                correctOption: "c",
+                exam: "U.P. R.O./A.R.O. (Pre) 2017",
+                explanation: "Kuka Movement was founded in Punjab. See the explanation of the above question."
+            },
+            {
+                id: 19,
+                question: "The Pagalpanthi rebellion was indeed a rebellion of :",
+                options: {
+                    a: "Bhils",
+                    b: "Garos",
+                    c: "Gonds",
+                    d: "Koliyas"
+                },
+                correctOption: "b",
+                exam: "U.P.P.C.S. (Pre) 1999",
+                explanation: "The Pagalpanthi rebellion was indeed a rebellion of Garos tribe which was a quasi-religious community or sect that was introduced by Karim/Karam Shah of North Bengal. Son of Karim Shah and successor Tipu was inspired by religious and political purposes. Tipu and Shah led these people to uphold the religion and rights of the peasants in Bengal. He captured Sherpur in 1825 and became king. He appointed a judge, a magistrate and a collector to control the administration."
+            },
+            {
+                id: 20,
+                question: "Who founded the ‘Pagal Panth’?",
+                options: {
+                    a: "Bulleh Shah",
+                    b: "Karam Shah",
+                    c: "Yaduvendra Singh",
+                    d: "Swami Shajananda"
+                },
+                correctOption: "b",
+                exam: "56th to 59th B.P.S.C. (Pre) 2015",
+                explanation: "The ‘Pagal Panth’ was founded by Karam Shah. See the explanation of the above question."
+            },
+            {
+                id: 21,
+                question: "Who among the following was the leader of the Farazi rebellion:",
+                options: {
+                    a: "Aga Muhammad Raza",
+                    b: "Dadu Miyan",
+                    c: "Shamsher Gazi",
+                    d: "Wazir Ali"
+                },
+                correctOption: "b",
+                exam: "U.P.P.C.S. (Pre) 1999",
+                explanation: "Faraizi Movement was founded by Haji Shariatullah in Faridpur of Bengal. They advocated radical changes in religious, political and social spheres. Son of Haji Shariatullah, Dadu Miyan led the rebellion against the British and this movement later merged with Wahabis after the death of Dadu Miyan."
+            },
+            {
+                id: 22,
+                question: "Who were the Faraizis?",
+                options: {
+                    a: "Followers of Haji Shariatullah",
+                    b: "Followers of Dadu",
+                    c: "Followers of the Arya Samaj",
+                    d: "Followers of the Muslim League"
+                },
+                correctOption: "a",
+                exam: "56th to 59th B.P.S.C. (Pre) 2015",
+                explanation: "The Faraizis were followers of Haji Shariatullah. See the explanation of the above question."
+            },
+            {
+                id: 23,
+                question: "Velu Thampi led a rebellion against the British in",
+                options: {
+                    a: "Kerala",
+                    b: "Maharashtra",
+                    c: "Mysore",
+                    d: "Telangana"
+                },
+                correctOption: "a",
+                exam: "U.P.P.C.S. (Mains) 2002",
+                explanation: "Wellesley compelled the King of Travancore (Kerala) to join the subsidiary alliance in 1805. The king was very displeased with the treaty and refused to pay the subsidy to the British. The behaviour of the British resident was rude, so Velu Thampi revolted and he was supported by the Nair battalion."
+            },
+            {
+                id: 24,
+                question: "Read the following statements and choose the correct option :\n\n(i) Ganjam Revolt occurred during AD 1800 to 1805\n(ii) Ganjam Revolt was led by Dhananjay\n(iii) Revolt of Gumsur was led by Shrikar Bhanja\n(iv) Dhananjay was father of Shrikar Bhanja\n\nWhich of the above statements is/are true?",
+                options: {
+                    a: "(i), (ii) and (iii)",
+                    b: "(i), (ii) and (iv)",
+                    c: "(i) and (ii)",
+                    d: "Only (i)"
+                },
+                correctOption: "a",
+                exam: "Chhattisgarh P.C.S. (Pre) 2021",
+                explanation: "There is a long history of rebellion in Ganjam and Gumsur in which rebellion of Ganjam (1800-1805) and rebellion of Gumsur (1808-1837) are important. In Gumsur, rebellions occurred first under Shrikar Bhanja and later under his son Dhananjay Bhanja II. Hence options (i), (ii) and (iii) are correct."
+            },
+            {
+                id: 25,
+                question: "Who founded Ramosi Krishak Jatha in Maharashtra?",
+                options: {
+                    a: "Justice Ranade",
+                    b: "Gopal Krishna Gokhale",
+                    c: "Vasudeo Balwant Phadke",
+                    d: "Jyotiba Phule"
+                },
+                correctOption: "c",
+                exam: "39th B.P.S.C. (Pre) 1994",
+                explanation: "Ramosi Krishak Jatha was founded by Vasudeo Balwant Phadke (1845-83). He organised the people of Ramosi tribes and converted them into a combat force. He was arrested and sentenced to life and died in 1883 due to a hunger strike against colonial rule in Kaala Pani."
+            },
+            {
+                id: 26,
+                question: "The correct geographical location for the Ramosi Uprising was –",
+                options: {
+                    a: "Western India",
+                    b: "Eastern Ghats",
+                    c: "Eastern India",
+                    d: "Western Ghats"
+                },
+                correctOption: "d",
+                exam: "56th to 59th B.P.S.C. (Pre) 2015",
+                explanation: "The Ramosi hill tribes in the Western Ghats resented British rule and the British pattern of administration. In 1822, under Chittar Singh, they revolted and plundered the country around Satara. There were revolts again during 1825-1826 and the area remained disturbed until 1831-32."
+            },
+            {
+                id: 27,
+                question: "Which of the following places was the centre of the Gadakari rebellion:",
+                options: {
+                    a: "Bihar Sharif",
+                    b: "Kolhapur",
+                    c: "Surat",
+                    d: "Sylhet"
+                },
+                correctOption: "b",
+                exam: "U.P.P.C.S. (Pre) 1999",
+                explanation: "Gadakaris were hereditary servants of the Marathas and were attached to their forts. They rose in rebellion in Kolhapur in 1844 due to pitiable land revenue and acquisition policies. The British army struggled hard for the suppression of this rebellion."
+            },
+            {
+                id: 28,
+                question: "Trace the tribe that rebelled against Britishers because human sacrifice system was banned –",
+                options: {
+                    a: "Kuki",
+                    b: "Khond",
+                    c: "Oraon",
+                    d: "Nackda"
+                },
+                correctOption: "b",
+                exam: "40th B.P.S.C. (Pre) 1995",
+                explanation: "The Khond was an aboriginal tribe that stretched from Bengal to Tamil Nadu covering central provinces. They revolted against the British from 1846 to 1855. The people of Khond tribe were led by Chakra Bisoi. The main reason for the revolt was stopping the Mariahs system (traditional human sacrifice practiced by Khonds), the introduction of new taxes by the British Government, etc."
+            },
+            {
+                id: 29,
+                question: "Who had led Kol Revolt?",
+                options: {
+                    a: "Budhu Bhagat",
+                    b: "Surga",
+                    c: "Bhagat",
+                    d: "Jatra Bhagat"
+                },
+                correctOption: "a",
+                exam: "Jharkhand P.C.S. (Pre) 2003",
+                explanation: "Kol Revolt was led by Budhu Bhagat in Chhota Nagpur region in 1831-32."
+            },
+            {
+                id: 30,
+                question: "Kol Mutiny of 1831 under Buddho Bhagat took place in which of the following regions?",
+                options: {
+                    a: "Kutch",
+                    b: "Singhbhum",
+                    c: "Western Ghats",
+                    d: "Satara",
+                    e: "None of the above/More than one of the above"
+                },
+                correctOption: "b",
+                exam: "66th B.P.S.C. (Pre) 2020",
+                explanation: "Kols are the inhabitants of Chhotanagpur. This area covered Ranchi, Singhbhum, Hazaribagh, Palamu and Manbhum. With the application of new land laws, outsiders like Hindu, Sikh, Muslim farmers, money lenders etc. started coming into these tribal areas in 1831. This led to massive exploitation of tribes. In 1831, under the leadership of Buddho Bhagat, Kol rebels revolted and killed about a thousand outsiders, but only after large-scale military operations could order be restored."
+            },
+            {
+                id: 31,
+                question: "The Waghera Uprising happened in –",
+                options: {
+                    a: "Surat",
+                    b: "Poona",
+                    c: "Calicut",
+                    d: "Baroda"
+                },
+                correctOption: "d",
+                exam: "56th to 59th B.P.S.C. (Pre) 2015",
+                explanation: "The Gaekwad of Baroda supported by the British Government compelled the Wagheras chief to take up arms. The Wagheras attacked British territory during 1818-1819. A peace treaty concluded the revolt in 1820."
+            },
+            {
+                id: 32,
+                question: "Arrange the following uprisings against the British colonial power in India prior to 1857 in the various parts of the country in the correct order:\n\n1. Sepoy mutiny in Bengal\n2. Kutch Rebellion\n3. Sepoy mutiny at Vellore\n4. Santhal uprising\n5. Kol uprising\n\nCode :",
+                options: {
+                    a: "(1), (3), (2), (5), (4)",
+                    b: "(3), (1), (5), (4), (2)",
+                    c: "(4), (1), (3), (2), (5)",
+                    d: "(3), (1), (2), (5), (4)"
+                },
+                correctOption: "a",
+                exam: "R.A.S./R.T.S. (Pre) 2013",
+                explanation: "The correct order of uprisings against the British colonial power in India is as follows: Sepoy mutiny in Bengal – 1764 (one battalion of Hector Munro at the battlefield of Buxar joined Mir Qasim); Sepoy mutiny at Vellore – 1806; Kutch Rebellion – 1819-31; Kol uprising – 1831-1832; Santhal Revolt – 1855-56."
+            },
+            {
+                id: 33,
+                question: "The revolt of Vellore occurred during the regime of which Governor?",
+                options: {
+                    a: "Wellesley",
+                    b: "Lord Minto",
+                    c: "Lord Cornwallis",
+                    d: "Sir George Barlow",
+                    e: "None of the above"
+                },
+                correctOption: "d",
+                exam: "Chhattisgarh P.C.S. (Pre) 2016",
+                explanation: "In 1806 AD, the soldiers mutinied at Vellore against interference in their social and religious customs and the flags of the Raja of Mysore. The Vellore rebellion took place during the time of Governor General Sir George Barlow. The tenure of Governor General Sir George Barlow was from 1805 to 1807 AD."
+            },
+            {
+                id: 34,
+                question: "When did Chhotanagpur Tribal Revolt occur?",
+                options: {
+                    a: "1807-1808",
+                    b: "*1820",
+                    c: "1858-1859",
+                    d: "1889"
+                },
+                correctOption: "b",
+                exam: "39th B.P.S.C. (Pre) 1994",
+                explanation: "There was no revolt named Chhotanagpur Tribal Revolt. But there were many revolts during different periods like Cheron revolt (1800), Kol revolt (1831-32), Santhal revolt (1855-56) and Munda revolt (1899-1900). If Ho revolt (1820-21) is considered then option (b) is the correct answer."
+            },
+            {
+                id: 35,
+                question: "In which territory did tribals rebel against the British?",
+                options: {
+                    a: "Bihar",
+                    b: "Punjab",
+                    c: "Sindh",
+                    d: "Kathiawar",
+                    e: "None of the above/More than one of the above"
+                },
+                correctOption: "a",
+                exam: "64th B.P.S.C. (Pre) 2018",
+                explanation: "The ‘Munda’ and ‘Ho’ (1820-21) tribes of Chhotanagpur region (part of the then Bihar) challenged the British army in 1831 AD. The region was in a state of disharmony until 1837 AD."
+            },
+            {
+                id: 36,
+                question: "Who led the revolt of Santhals?",
+                options: {
+                    a: "Siddhu-Kanhu",
+                    b: "Bhairav-Chand",
+                    c: "Both (a) and (b)",
+                    d: "None of (a) and (b)"
+                },
+                correctOption: "c",
+                exam: "Jharkhand P.C.S. (Pre) 2003",
+                explanation: "In 1855-56, Sidhu, Kanhu, Chand and Bhairav, the four brothers, gave a call for rebellion. The rebellious Santhals assembled and raised their arms against the British revenue system."
+            },
+            {
+                id: 37,
+                question: "Who took the lead of the Santhal Rebellion of 1855 A.D.?",
+                options: {
+                    a: "Sidhu and Kanhu",
+                    b: "Budhu Bhagat and Teja Bhagat",
+                    c: "Mulu Manck and Jodha Manek",
+                    d: "Madari Pasi and Sahadev",
+                    e: "None of the above/More than one of the above"
+                },
+                correctOption: "a",
+                exam: "67th B.P.S.C. (Pre) 2022",
+                explanation: "Sidhu and Kanhu took the lead of the Santhal Rebellion of 1855 A.D. See the explanation of the above question."
+            },
+            {
+                id: 38,
+                question: "Which among the following year ‘Santhal revolt’ was occurred?",
+                options: {
+                    a: "1831-32 AD",
+                    b: "1844-46 AD",
+                    c: "1851-52 AD",
+                    d: "1855-56 AD",
+                    e: "None of the above/More than one of the above"
+                },
+                correctOption: "d",
+                exam: "60th to 62nd B.P.S.C. (Pre) 2016",
+                explanation: "Santhal revolt occurred in 1855-56 AD. See the explanation of the above question."
+            },
+            {
+                id: 39,
+                question: "Who led the Santhal rebellion?",
+                options: {
+                    a: "Jaipal Singh",
+                    b: "Master Tara Singh",
+                    c: "Shibu Soren",
+                    d: "Siddhu and Kanhu"
+                },
+                correctOption: "d",
+                exam: "Jharkhand P.C.S. (Pre) 2011",
+                explanation: "Santhal rebellion was led by Siddhu and Kanhu. See the explanation of the above question."
+            },
+            {
+                id: 40,
+                question: "Who were the leaders of Santhal Revolt?",
+                options: {
+                    a: "Jara Bhagat and Balaram Bhagat",
+                    b: "Sidhu and Kanhu",
+                    c: "Gaurakshni Bhagat and Keshav Chandra Roy",
+                    d: "Shambh math Pal and Korra Mallaya",
+                    e: "None of the above/More than one of the above"
+                },
+                correctOption: "b",
+                exam: "67th B.P.S.C. (Pre) (Re. Exam) 2022",
+                explanation: "The leaders of Santhal Revolt were Sidhu and Kanhu. See the explanation of the above question."
+            },
+            {
+                id: 41,
+                question: "Who was the chief leader of the Santhal Revolt?",
+                options: {
+                    a: "Siddho",
+                    b: "Birsa Munda",
+                    c: "Bhima Nayak",
+                    d: "Swami Govindgiri"
+                },
+                correctOption: "a",
+                exam: "M.P.P.S.C. (Pre) 2022",
+                explanation: "Siddho was the chief leader of the Santhal Revolt. See the explanation of the above question."
+            },
+            {
+                id: 42,
+                question: "Which of the above pairs is not correctly matched?\n\nRebellion — Year",
+                options: {
+                    a: "Santhal — 1855",
+                    b: "Kol — 1831",
+                    c: "Khasi — 1829",
+                    d: "Ahom — 1815"
+                },
+                correctOption: "d",
+                exam: "U.P.P.C.S. (Pre) 2018",
+                explanation: "The Ahom Rebellion was held under the leadership of Gomdhar Kunwar in Ahom region in 1828. Khasi rebellion (1829-33) broke out under the leadership of Teerat Singh. Kol revolt (1831-1832 AD) was held under the leadership of Buddho Bhagat and Ganga Narayan in Chhotanagpur region. Santhal Rebellion (1855-56 AD) was a famous tribal revolt whose leaders were four brothers named Siddhu, Kanhu, Chand and Bhairav."
+            },
+            {
+                id: 43,
+                question: "Which British Commander was defeated by the Santhals in 1855?",
+                options: {
+                    a: "Captain Nek Feville",
+                    b: "Lt. Bastain",
+                    c: "Major Burrough",
+                    d: "Colonel White"
+                },
+                correctOption: "c",
+                exam: "47th B.P.S.C. (Pre) 2005",
+                explanation: "A small contingent of forces under Major Burrough was called to suppress the Santhal rebels, but he met tremendous resistance and was defeated at Pirpainti. The victory of the Santhals over the British further fueled the rebellion which spread like wildfire."
+            },
+            {
+                id: 44,
+                question: "With reference to “Santhal Hool” of 1855, which of the following statement/s is/are correct?\n\n1. Major Baroz lost the battle with Santhals near Bhagalpur.\n2. Gokko was an important leader of Godda.\n3. Mahajan Deen Dayal Rai is also an important name in this context.\n4. There was a time when Santhals enjoyed full sovereignty over the area of Ganga valley near Muzaffarpur.\n\nCodes:",
+                options: {
+                    a: "1 only",
+                    b: "1, 3, 4",
+                    c: "1, 2, 3",
+                    d: "2 & 3 only"
+                },
+                correctOption: "c",
+                exam: "U.P.P.C.S. (Mains) 2017",
+                explanation: "The Santhal Rebellion, commonly known as the Santhal Hool, was a rebellion in present-day Jharkhand in eastern India against both the British colonial authority and the Zamindari system by the Santhal people. The rebellion started on 30 June 1855 under the Santhal rebel leaders Sido/Sindhu, Kanhu, Chand and Bhairav. Major Burrough's troops suffered a defeat in a fierce engagement with a body of armed Santhals. Gokko was an important leader of Godda and a respectable old Santhal headman. Mahajan Deen Dayal Rai is also an important name in this context. However, they did not enjoy sovereignty over the area of the Ganga valley; the revolt was confined between Bhagalpur to Rajmahal hill region."
+            },
+            {
+                id: 45,
+                question: "After the Santhal Uprising subsided, what was/were the measure/measures taken by the colonial government?\n\n1. The territories called ‘Santhal Paraganas’ were created.\n2. It became illegal for a Santhal to transfer land to a non-Santhal.\n\nSelect the correct answer using the code given below:",
+                options: {
+                    a: "1 only",
+                    b: "2 only",
+                    c: "Both 1 and 2",
+                    d: "Neither 1 nor 2"
+                },
+                correctOption: "c",
+                exam: "I.A.S. (Pre) 2018",
+                explanation: "The Santhal Rebellion was a famous tribal revolt held in erstwhile Bihar and Odisha in 1855-56 AD. After the suppression of the revolt, the British Government accepted the demand for a separate Santhal Pargana. A new district, the Santhal Pargana, was created by the Government. The Santhal Pargana Tenancy Act was passed which made it illegal to transfer their land to non-Santhals."
+            },
+            {
+                id: 46,
+                question: "What was the Santhal Pargana region called in ancient times?",
+                options: {
+                    a: "Narikhand",
+                    b: "Man-Varjikah",
+                    c: "Kartasina",
+                    d: "None of these"
+                },
+                correctOption: "a",
+                exam: "Jharkhand P.C.S. (Pre) 2016",
+                explanation: "Santhal Pargana region was called ‘Narikhand’ in ancient times. According to Buddhist literature, this region was also called ‘Kajangala’. During the Mahabharat period Santhal Pargana region was a part of Anga Mahajanapada."
+            },
+            {
+                id: 47,
+                question: "Which one of the following uprising occurred in Maharastara?",
+                options: {
+                    a: "Bhil uprising",
+                    b: "Kol Uprising",
+                    c: "Rampa uprising",
+                    d: "Santhal uprising"
+                },
+                correctOption: "a",
+                exam: "U.P.P.C.S. (Pre) 1998",
+                explanation: "The Bhil uprising occurred in the regions including parts of Maharashtra."
+            },
+            {
+                id: 48,
+                question: "Who launched the ‘Lasodia Movement’ for social reforms amongst the Bhils of Mewar, Bagar and nearby regions?",
+                options: {
+                    a: "Mavji",
+                    b: "Govind Giri",
+                    c: "Surmal Das",
+                    d: "Moti Lal Tejawat"
+                },
+                correctOption: "b",
+                exam: "R.A.S./R.T.S.(Pre) 2008",
+                explanation: "Social reformers like Surji Bhagat and Govind Giri launched the ‘Lasodia Movement’ for social reforms amongst the Bhils of Mewar, Pratapgarh and nearby regions in the latter half of the 19th century. Govind Giri founded “Samp Sabha” in 1883 with a view to organising the Bhil community. He is considered as the founder of Lasodia Movement."
+            },
+            {
+                id: 49,
+                question: "Ulgulan Revolt was related to –",
+                options: {
+                    a: "Santhal",
+                    b: "Kacha Nagh",
+                    c: "Kol",
+                    d: "Birsa Munda"
+                },
+                correctOption: "d",
+                exam: "39th B.P.S.C. (Pre) 1994",
+                explanation: "‘Ulgulan’ or the Great Tumult is associated with Birsa Munda’s revolt."
+            },
+            {
+                id: 50,
+                question: "With reference to the history of India, \"Ulgulan\" or the Great Tumult is the description of which of the following events?",
+                options: {
+                    a: "The Revolt of 1857",
+                    b: "The Mappila Rebellion of 1921",
+                    c: "The Indigo Revolt of 1859 -60",
+                    d: "Birsa Munda's Revolt of 1899 - 1900"
+                },
+                correctOption: "d",
+                exam: "I.A.S. (Pre) 2020",
+                explanation: "‘Ulgulan’ meaning Great Tumult was a revolution to establish Munda Raj and independence which was led by Birsa Munda in 1899-1900. It was a revolt to establish the right of indigenous people over their resources which were being snatched away from them by landlords, money lenders and colonial rulers during pre-independence time."
+            },
+            {
+                id: 51,
+                question: "Which tribal leader known as ‘Dharti Aaba’ (Father of World)?",
+                options: {
+                    a: "Jirya Bhagat",
+                    b: "Kanu Sanyal",
+                    c: "Roop Nayak",
+                    d: "Birsa Munda"
+                },
+                correctOption: "d",
+                exam: "",
+                explanation: "Birsa Munda is known as ‘Dharti Aaba’ (Father of the World)."
+            },
+            {
+                id: 52,
+                question: "Who was the leader of Munda rebellion?",
+                options: {
+                    a: "Birsa",
+                    b: "Kanhu",
+                    c: "Tilak Manjhi",
+                    d: "Siddhu"
+                },
+                correctOption: "a",
+                exam: "47th B.P.S.C. (Pre) 2005 / U.P. P.C.S. (Pre) 1998",
+                explanation: "Birsa was the leader of the Munda rebellion. See the explanation of the above question."
+            },
+            {
+                id: 53,
+                question: "Who was the leader of Munda Revolt?",
+                options: {
+                    a: "Siddhu",
+                    b: "Birsa",
+                    c: "Kanhu",
+                    d: "Tilka Manjhi",
+                    e: "None of the above/More than one of the above"
+                },
+                correctOption: "b",
+                exam: "66th B.P.S.C. Re-Exam (Pre) 2020",
+                explanation: "Birsa was the leader of Munda Revolt. See the explanation of the above question."
+            },
+            {
+                id: 54,
+                question: "Mundas rose revolt in –",
+                options: {
+                    a: "1885",
+                    b: "1888",
+                    c: "1890",
+                    d: "*1895"
+                },
+                correctOption: "d",
+                exam: "45th B.P.S.C. (Pre) 2001",
+                explanation: "One of the prominent revolts of the nineteenth century on the Indian subcontinent was the Munda Rebellion. This rebellion was led by Birsa Munda in 1899. Traditionally, the Mundas enjoyed the system known as Khuntkatti which meant the original clearing of the forest. However, in the course of time, the Mundas realized that this system was being corroded by the jaghirdars and thikedars who came as moneylenders and traders. In the year 1895, Birsa declared himself prophet. This movement was popularly known as Sardari Idai. Munda was arrested in 1900 and later died in jail."
+            },
+            {
+                id: 55,
+                question: "Birsa was captured, while asleep on :",
+                options: {
+                    a: "1 February, 1900",
+                    b: "2 February, 1900",
+                    c: "3 February, 1900",
+                    d: "4 February, 1900",
+                    e: "None of the above/More than one of the above"
+                },
+                correctOption: "c",
+                exam: "B.P.S.C. (Pre) 2016",
+                explanation: "Birsa Munda was captured from Jamkopai forest in Chakradharpur (West Singhbhoom) on 3 February, 1900 and he died ambiguously on 9th June, 1900 in prison."
+            },
+            {
+                id: 56,
+                question: "Birsa Munda was in favour of",
+                options: {
+                    a: "Jharkhand",
+                    b: "Uttaranchal",
+                    c: "Chattisgarh",
+                    d: "None of these"
+                },
+                correctOption: "d",
+                exam: "44th B.P.S.C. (Pre) 2000",
+                explanation: "The Munda Rebellion led by Birsa Munda in Ranchi in 1899-1900 aimed to establish an independent Munda Raj but he was not in favour of the establishment of an individual state. The movement aimed to reconstruct the tribal society from disintegration caused by colonial rule and the advent of Christianity."
+            },
+            {
+                id: 57,
+                question: "Which was the working area of Birsa Munda?",
+                options: {
+                    a: "Champaran",
+                    b: "Balia",
+                    c: "Ranchi",
+                    d: "Alipur"
+                },
+                correctOption: "b",
+                exam: "48th to 52nd B.P.S.C. (Pre) 2008",
+                explanation: "The working region of Birsa Munda was expanded from Ranchi to Bhagalpur. The major objectives of Birsa were to introduce social reforms in tribal areas and keep away from British rule. Birsa criticized traditional tribal customs, beliefs and practices and encouraged Mundas to fight superstitions, renounce animal sacrifices, stop taking intoxicants, wear the sacred thread and continue traditional tribal worship."
+            },
+            {
+                id: 58,
+                question: "The word Adivasi was used for the first time to refer to the tribal people by :",
+                options: {
+                    a: "Mahatma Gandhi",
+                    b: "Thakkar Bappa",
+                    c: "Jyotiba Phule",
+                    d: "B.R. Ambedkar"
+                },
+                correctOption: "b",
+                exam: "I.A.S. (Pre) 1995",
+                explanation: "The word Adivasi was used for the first time to refer to the tribal people by Amritlal Vithaldas Thakkar, popularly known as Thakkar Bappa. He was a loyal member of Servants of India Society and advocated for the rights of untouchables and tribals. He worked closely with Gandhi and became general secretary of the Harijan Sevak Sangh."
+            },
+            {
+                id: 59,
+                question: "Which amongst the following provided a common factor for a tribal insurrection in India in the 19th century?",
+                options: {
+                    a: "Introduction of a new system of land revenue and taxation of tribal products",
+                    b: "Influence of foreign religious missionaries in tribal areas",
+                    c: "Rise of a large number of money lenders, traders and revenue farmers as middlemen in tribal areas",
+                    d: "The complete disruption of the old agrarian order of the tribal communities"
+                },
+                correctOption: "d",
+                exam: "I.A.S. (Pre) 2011",
+                explanation: "Factors mentioned in options (a), (b), and (c) were reasons behind tribal insurrection in India but the factor mentioned in option (d) was the key factor behind tribal insurrection in India during the 19th century."
+            },
+            {
+                id: 60,
+                question: "The Hoz revolt took place during –",
+                options: {
+                    a: "1620 - 21",
+                    b: "1720 - 21",
+                    c: "1820 - 21",
+                    d: "1920 - 21"
+                },
+                correctOption: "c",
+                exam: "43rd B.P.S.C. (Pre) 1994",
+                explanation: "Hoz or Ho revolt took place in 1820-21, the centre of which was located in Santhal Pargana of Bihar."
+            },
+            {
+                id: 61,
+                question: "When did Khairwar Tribal movement occur?",
+                options: {
+                    a: "1874",
+                    b: "1960",
+                    c: "1865",
+                    d: "1870"
+                },
+                correctOption: "a",
+                exam: "Jharkhand P.C.S. (Pre) 2003",
+                explanation: "Khairwar tribal movement occurred under the leadership of Bhagirath Manjhi in 1874."
+            },
+            {
+                id: 62,
+                question: "Who among the following was the leader of some anti-British revolts in Sambhalpur?",
+                options: {
+                    a: "Uttari Singh",
+                    b: "Surendra Sai",
+                    c: "Kattabomman",
+                    d: "Sayyid Ahmad Barelvi"
+                },
+                correctOption: "b",
+                exam: "I.A.S. (Pre) 1994",
+                explanation: "The claimant of Sambhalpur, Surendra Sai, led the revolt against the Britishers. He surrendered in 1862."
+            },
+            {
+                id: 63,
+                question: "Consider the following events:\n\n1. Indigo Revolt\n2. Santhal Rebellion\n3. Deccan Agriculturists Riots\n4. Mutiny of the Sepoys\n\nThe correct chronological sequence of these events is:",
+                options: {
+                    a: "4, 2, 1, 3",
+                    b: "4, 2, 3, 1",
+                    c: "2, 4, 3, 1",
+                    d: "2, 4, 1, 3"
+                },
+                correctOption: "d",
+                exam: "I.A.S. (Pre) 1999",
+                explanation: "Santhal Rebellion occurred in 1855-56, Sepoy mutiny in 1857, Indigo Revolt in 1859-60, and Deccan Agriculturists Riots in 1875. Hence the correct order is 2, 4, 1, 3."
+            },
+            {
+                id: 64,
+                question: "The immediate cause of the Deccan Riots of 1875 was",
+                options: {
+                    a: "the shadow of famine",
+                    b: "high interest rates charged by Mahajans",
+                    c: "high land revenue rates",
+                    d: "protest against imposition",
+                    e: "none of the above/ more than one of the above"
+                },
+                correctOption: "e",
+                exam: "64th B.P.S.C. (Pre) 2018",
+                explanation: "The immediate cause of the Deccan Riots of 1875 was the shadow of famine and high interest rates charged by Mahajans."
+            },
+            {
+                id: 65,
+                question: "The following popular movements occurred after 1857 :\n\n1. Santhal Rebellion\n2. Indigo Revolt\n3. Deccan Agriculturists Riots\n4. Birsa Munda Uprising\n\nSelect the correct answer:",
+                options: {
+                    a: "1, 2, 3",
+                    b: "2, 3, 4",
+                    c: "1, 2, 4",
+                    d: "1, 3, 4"
+                },
+                correctOption: "b",
+                exam: "Chhattisgarh P.C.S. (Pre) 2017",
+                explanation: "Indigo Revolt – 1859-60; Deccan Agriculturists Riots – 1875; Birsa Munda Uprising – 1899-1900; Santhal Rebellion – 1855-56. Of these, Indigo Revolt, Deccan Riots and Birsa Uprising occurred after 1857."
+            },
+            {
+                id: 66,
+                question: "Match List- I with List- II and select the correct answer using the code given below the lists.\n\nList-I\t\t\tList-II\nA. Moplah revolt\t\t1. Kerala\nB. Pabna revolt\t\t2. Bihar\nC. Eka Movement\t\t3. Bengal\nD. Birsa Munda revolt\t4. Oudh\n\nCode: A B C D",
+                options: {
+                    a: "A-1, B-3, C-4, D-2",
+                    b: "A-2, B-3, C-4, D-1",
+                    c: "A-1, B-2, C-3, D-4",
+                    d: "A-3, B-4, C-1, D-2"
+                },
+                correctOption: "a",
+                exam: "U.P.R.O./A.R.O. (Pre) (Re-Exam) 2016",
+                explanation: "Moplah revolt – Kerala; Pabna revolt – Bengal; Eka Movement – Oudh; Birsa Munda revolt – Bihar. Matches are as follows: Rampa Rebellion – 1879-80; Pabna Peasant Revolt – 1873-76; Bengal Indigo Revolt – 1859-60; Jaintia Rebellion – 1860-63."
+            },
+            {
+                id: 67,
+                question: "The Moplah Rebellion of 1921 broke out in :-",
+                options: {
+                    a: "Assam",
+                    b: "Kerala",
+                    c: "Punjab",
+                    d: "Bengal",
+                    e: "None of the above/More than one of the above"
+                },
+                correctOption: "b",
+                exam: "63rd B.P.S.C (Pre) 2017",
+                explanation: "The Moplah Rebellion of 1921 broke out in Kerala. See the explanation of the above question."
+            },
+            {
+                id: 68,
+                question: "Match List -I with List - II and select correct answer from the code given below the lists.\n\nList–I (Revolt/Movement)\tList–II (Year)\nA. Tebhaga Movement\t\t1. 1859-60\nB. Mopla Rebellion\t\t2. 1879-80\nC. Pabna Peasant Revolt\t3. 1921\nD. Bengal Indigo Revolt\t4. 1946-47\n\nCode: A B C D",
+                options: {
+                    a: "A-1, B-2, C-3, D-4",
+                    b: "*A-4, B-3, C-2, D-1",
+                    c: "A-2, B-3, C-4, D-1",
+                    d: "A-4, B-3, C-2, D-1"
+                },
+                correctOption: "b",
+                exam: "U.P.R.O./A.R.O. (Mains) 2016",
+                explanation: "Following are the correct matches: Bengal Indigo Revolt – 1859-60; Pabna Peasant Revolt – 1873-76; Mopla Rebellion – 1921; Tebhaga Movement – 1946-47."
+            },
+            {
+                id: 69,
+                question: "Match List- I with List- II and select the correct answer using the code given below the lists :\n\nList- I (Movement)\tList- II (Year)\nA. Pabna rebellion\t1. 1855-56\nB. Eka Movement\t\t2. 1873-85\nC. Santhal Rebellion\t3. 1922\nD. Tana Bhagat Movement\t4. 1914\n\nCode: A B C D",
+                options: {
+                    a: "A-1, B-2, C-4, D-3",
+                    b: "A-2, B-3, C-1, D-4",
+                    c: "A-3, B-1, C-4, D-2",
+                    d: "A-4, B-3, C-2, D-1"
+                },
+                correctOption: "b",
+                exam: "U.P.P.C.S. (Pre) 2019",
+                explanation: "The correct match of List- I with List-II is as follows: Pabna Rebellion – 1873-85; Eka Movement – 1922; Santhal Rebellion – 1855-56; Tana Bhagat Movement – 1914. In 1885, the Bengal Tenancy Act clarified the rights of farmers, which was a main demand of the Pabna movement."
+            },
+            {
+                id: 70,
+                question: "Who started the Eka movement?",
+                options: {
+                    a: "Farmers of Maharashtra",
+                    b: "Farmers of Bengal",
+                    c: "Farmers of Punjab",
+                    d: "Farmers of Hardoi, Barabanki and other places of Uttar Pradesh"
+                },
+                correctOption: "d",
+                exam: "U.P. P.C.S. (Mains) 2007",
+                explanation: "Eka movement (1921-22) was started by farmers in Hardoi, Bahraich, Sitapur etc. districts of Uttar Pradesh. The main point of contention of this movement was collection of 50% more tax than accepted tax. The movement was led by Madari Pasi."
+            },
+            {
+                id: 71,
+                question: "Match the List-I with List-II and select the correct answer from the codes given below:\n\nList–I\t\t\tList-II\nA. Rampa Rebellion\t1. 1859-60\nB. Pabna Peasant Revolt\t2. 1879-80\nC. Bengal Indigo Revolt\t3. 1860-63\nD. Jaintia Rebellion\t4. 1873-76\n\nCode: A B C D",
+                options: {
+                    a: "A-2, B-1, C-3, D-4",
+                    b: "A-2, B-4, C-1, D-3",
+                    c: "A-1, B-2, C-3, D-4",
+                    d: "A-4, B-2, C-1, D-3"
+                },
+                correctOption: "b",
+                exam: "",
+                explanation: "Rampa Rebellion – 1879-80; Pabna Peasant Revolt – 1873-76; Bengal Indigo Revolt – 1859-60; Jaintia Rebellion – 1860-63."
+            },
+            {
+                id: 72,
+                question: "Moplah revolt of 1921 took place in",
+                options: {
+                    a: "Kashmir",
+                    b: "B.N.W.F.P.",
+                    c: "Kerala",
+                    d: "Assam"
+                },
+                correctOption: "c",
+                exam: "48th to 52nd B.P.S.C. (Pre) 2008",
+                explanation: "Moplah revolt occurred in the Malabar region of Kerala in 1921. Most of the local tenants were Muslims while landlords were Hindu. The movement was against the exploitation of landlords."
+            },
+            {
+                id: 73,
+                question: "The ‘Moplah Revolt’ of 1921 took place in :",
+                options: {
+                    a: "Telangana",
+                    b: "Vidarbha",
+                    c: "Malabar",
+                    d: "Marathwada"
+                },
+                correctOption: "c",
+                exam: "U.P.P.C.S. (Mains) 2016 / U.P.P.C.S. (GIC) 2010 / Jharkhand P.C.S. (Pre) 2003",
+                explanation: "The Moplah Revolt of 1921 was a peasant movement that took place in Malabar region of Kerala. The Moplah tenants were Muslim and were agitated against Hindu landlords and the British Government on grievances related to lack of security of tenure, renewal fees, high rent and other oppressive landlord exactions."
+            },
+            {
+                id: 74,
+                question: "Match List-I with List-II and select the correct answer by using the code given below the lists :\n\nList-I (Events)\t\tList-II (Dates)\nA. Barrackpur Mutiny\t1. July, 1806\nB. Berhampur Revolt\t2. November, 1824\nC. Santhal Revolt\t3. 1855-56\nD. Vellore Mutiny\t4. February, 1857\n\nCode: A B C D",
+                options: {
+                    a: "A-2, B-4, C-3, D-1",
+                    b: "A-2, B-1, C-4, D-3",
+                    c: "A-3, B-4, C-2, D-1",
+                    d: "A-1, B-2, C-3, D-4"
+                },
+                correctOption: "a",
+                exam: "U.P.P.C.S. (Mains) 2006",
+                explanation: "Barrackpur Mutiny – November 1824; Berhampur Revolt – February 1857; Santhal Revolt – 1855-56; Vellore Mutiny – July 1806."
+            },
+            {
+                id: 75,
+                question: "Match List-I with List-II and select the correct answer from the codes given below :\n\nList-I (Rebellion)\tList-II (Year A.D.)\nA. Ahom\t\ti. 1855-56\nB. Kol\t\tii. 1828\nC. Santhal\t\tiii. 1921\nD. Moplah\t\tiv. 1831-32\n\nCode: A B C D",
+                options: {
+                    a: "A-2, B-4, C-1, D-3",
+                    b: "A-1, B-3, C-2, D-4",
+                    c: "A-2, B-1, C-3, D-4",
+                    d: "A-3, B-1, C-4, D-2"
+                },
+                correctOption: "a",
+                exam: "U.P. R.O./A.R.O. 2017",
+                explanation: "The correctly matched list is as follows: Ahom – 1828; Kol – 1831-32; Santhal – 1855-56; Moplah – 1921."
+            },
+            {
+                id: 76,
+                question: "Which of the following is not correctly matched?\n\n(a) Moplah revolt – Kerala\n(b) Kuka revolt – Punjab\n(c) Koli revolt – Gujarat\n(d) Chuar revolt – Madhya Pradesh",
+                options: {
+                    a: "Moplah revolt – Kerala",
+                    b: "Kuka revolt – Punjab",
+                    c: "Koli revolt – Gujarat",
+                    d: "Chuar revolt – Madhya Pradesh"
+                },
+                correctOption: "d",
+                exam: "U.P.P.C.S. (Mains) 2015",
+                explanation: "The Moplah Rebellion or the Malabar Rebellion was an extended version of the Khilafat movement in Kerala in 1921. The major centres of Kuka revolt were parts of Punjab region. The uprising of the Koli tribes was in the Taranga hills of Mehsana district in Gujarat. Chuar Revolt (1767-1802) was a massive rebellion that broke out in Bankura and Midnapore region, Bengal. Thus, option (d) is not correctly matched."
+            },
+            {
+                id: 77,
+                question: "Bhils revolted against the British in –",
+                options: {
+                    a: "M.P. and Maharashtra",
+                    b: "M.P. and Bihar",
+                    c: "Bihar and Bengal",
+                    d: "Bengal and Maharashtra"
+                },
+                correctOption: "a",
+                exam: "M.P.P.C.S. (Pre) 2008",
+                explanation: "The uprising of the Bhils (1818-1831) was largely concentrated in Khandesh (present-day Maharashtra and Madhya Pradesh). Some agitation also occurred in Rajasthan and Madhya Pradesh in the 19th–20th century."
+            },
+            {
+                id: 78,
+                question: "Which one of the following pairs is not correctly matched?\n\n(a) Munda – Birsa\n(b) Santhal – Kanhu\n(c) Ahom – Gomdhar Kunwar\n(d) Nayak – Tanna Bhagat",
+                options: {
+                    a: "Munda – Birsa",
+                    b: "Santhal – Kanhu",
+                    c: "Ahom – Gomdhar Kunwar",
+                    d: "Nayak – Tanna Bhagat"
+                },
+                correctOption: "d",
+                exam: "U.P.P.C.S. (Spl) (Pre) 2008",
+                explanation: "Munda rebellion was led by Birsa Munda in the south of Ranchi in 1899-1900. Santhal rebellion occurred in 1855-1856; Sidhu and Kanhu were leading Santhal leaders. Ahom Movement was led by Gomdhar Kunwar in 1828. Tana Bhagats were a tribal community of Chota Nagpur region related to the Tana Bhagat movement (1914) formed by Oraon saints Jatra Bhagat, Balram Bhagat and Devmania Bhagat. Hence ‘Nayak – Tanna Bhagat’ is not correctly matched."
+            },
+            {
+                id: 79,
+                question: "In which year Jatra Oraon started Tana Bhagat Movement?",
+                options: {
+                    a: "1919",
+                    b: "1917",
+                    c: "1914",
+                    d: "1922"
+                },
+                correctOption: "c",
+                exam: "Chhattisgarh P.C.S. (Mains) 2015",
+                explanation: "Jatra Oraon started the Tana Bhagat Movement in 1914. See the explanation of the above question."
+            },
+            {
+                id: 80,
+                question: "Match these former revolts in 19th century with these related areas –\n\n1. Punjab\n2. Bengal\n3. Bihar\n4. Tripura\n\nA. Kuki revolt\nB. Kuka revolt\nC. Pabna revolt\nD. Birsa Munda revolt\n\nCode: A B C D",
+                options: {
+                    a: "A-4, B-2, C-1, D-3",
+                    b: "A-2, B-3, C-1, D-4",
+                    c: "A-4, B-1, C-3, D-2",
+                    d: "A-4, B-1, C-2, D-3"
+                },
+                correctOption: "d",
+                exam: "U.P. P.C.S. (Pre) 2010",
+                explanation: "Kuki revolt (1917-19) – Manipur and Tripura; Kuka revolt (1840-72) – Punjab; Pabna revolt (1873-1876) – Bengal; Birsa Munda revolt (1899-1900) – Bihar (today’s Jharkhand)."
+            },
+            {
+                id: 81,
+                question: "Which of the following is NOT correctly matched ?\n\n(Revolts)\t(Years)\n(a) Neel Rebellion – 1859-60\n(b) Jaintiya Rebellion – 1860-63\n(c) Kuki Rebellion – 1860-90\n(d) Kuka Revolt – 1832-34",
+                options: {
+                    a: "Neel Rebellion – 1859-60",
+                    b: "Jaintiya Rebellion – 1860-63",
+                    c: "*Kuki Rebellion – 1860-90",
+                    d: "Kuka Revolt – 1832-34"
+                },
+                correctOption: "c",
+                exam: "U.P.B.E.O. (Pre) 2019",
+                explanation: "Kuka rebellion was started by Bhagat Jawahar Mal in the 1840s. The objective of this revolt was to purge Sikhism of superstition and uphold the religious purity of Sikhism. Kuki rebellion started in 1917 and was against the British government's dictate to join Labour Corps for WWI effort. Since two options are incorrect, either this question needs to be cancelled or both options should be accepted as correct."
+            },
+            {
+                id: 82,
+                question: "Who was the leader of Bhumij Revolt?",
+                options: {
+                    a: "Bhagirath",
+                    b: "Dubia Gosain",
+                    c: "Jatra Bhagat",
+                    d: "Ganga Narain"
+                },
+                correctOption: "d",
+                exam: "Jharkhand P.C.S. (Pre.) 2021",
+                explanation: "Bhumij (one who is born from the soil) revolt was led by Ganga Narain. It occurred in 1832-33 in the Jungle Mahal region of East India starting as an inheritance issue in the Zamindari of Barabhum (West Bengal) and snowballed into an armed conflict against British rule."
+            },
+            {
+                id: 83,
+                question: "The Tebhaga Movement was started in 1946 from Bengal under the leadership of :",
+                options: {
+                    a: "Muslim League",
+                    b: "Kisan Sabha",
+                    c: "Indian National Congress",
+                    d: "Trade Union",
+                    e: "None of the above/More than one of the above"
+                },
+                correctOption: "b",
+                exam: "66th B.P.S.C. (Pre) (Re-Exam) 2020",
+                explanation: "Tebhaga Movement (1946-47 AD) was a famous peasant movement in Bengal, under which peasants started a struggle to reduce the rate of rent by one-third as per the recommendation of the Floud Commission. This movement started under the leadership of Bangiya Pradeshik Kisan Sabha. The most prominent leaders were Kampram Singh and Bhuvan Singh."
+            },
+            {
+                id: 84,
+                question: "The first tribal leader who was inspired by Mahatma Gandhi and his ideology was –",
+                options: {
+                    a: "Alluri Sitaram Raju",
+                    b: "Jodanang",
+                    c: "Jhabkar Bapa",
+                    d: "Rani Gaidinliu"
+                },
+                correctOption: "b",
+                exam: "Jharkhand P.C.S. (Pre) 2013",
+                explanation: "Haipou Jadonang was the first tribal leader who was inspired by Gandhiji. He was the main leader of Manipur’s Naga tribe. He, along with Rani Gaidinliu, started social and religious reforms including freedom fighting."
+            },
+            {
+                id: 85,
+                question: "Who among the following was the first leader to organize labour movement in India?",
+                options: {
+                    a: "B.P. Walia",
+                    b: "Lala Lajpat Rai",
+                    c: "N.M. Lokhande",
+                    d: "N.G. Ranga"
+                },
+                correctOption: "c",
+                exam: "M.P. P.C.S. (Pre) 2017",
+                explanation: "Narayani Meghaji Lokhande (1848-1897 A.D.) is considered a pioneer of labour movement in India. He not only worked for workers of cotton mills in the 19th century but also for social and communal issues prevalent in Indian society."
+            }
+        ];
+
+        /* =========================================
+           NOTHING BELOW THIS NEEDS TO BE TOUCHED
+           ========================================= */
+
+        const state = {
+            answers: {},
+            isSubmitted: false,
+            startTime: null,
+            endTime: null,
+            timerInterval: null,
+            remainingSeconds: 0,
+            totalSeconds: 0,
+            isPaused: false
+        };
+
+        const quizContainer = document.getElementById("quiz-container");
+        const resultSummary = document.getElementById("result-summary");
+        const notesSection = document.getElementById("notes-section");
+        const notesContent = document.getElementById("notes-content");
+        const timerEl = document.getElementById("timer");
+        const submitBtn = document.getElementById("submit-btn");
+        const resetBtn = document.getElementById("reset-btn");
+        const printNotesBtn = document.getElementById("print-notes-btn");
+        const pauseResumeBtn = document.getElementById("pause-resume-btn");
+
+        function formatText(text) {
+            return text.replace(/\n/g, "<br>");
+        }
+
+        function renderQuiz() {
+            quizContainer.innerHTML = "";
+            quizData.forEach(q => {
+                const box = document.createElement("div");
+                box.className = "question-box";
+                box.dataset.qid = q.id;
+
+                let starMarkedQuestion = false;
+
+                const header = document.createElement("div");
+                header.className = "question-header";
+                header.innerHTML = "<span class='q-number'>" + q.id + ".</span> " +
+                    "<span class='question-text'>" + formatText(q.question) + "</span>";
+                box.appendChild(header);
+
+                const optionsDiv = document.createElement("div");
+                optionsDiv.className = "options";
+
+                Object.keys(q.options).forEach(key => {
+                    const label = document.createElement("label");
+                    label.className = "option-label";
+                    label.dataset.qid = q.id;
+                    label.dataset.optionKey = key;
+
+                    const input = document.createElement("input");
+                    input.type = "radio";
+                    input.name = "q" + q.id;
+                    input.value = key;
+                    input.addEventListener("change", onOptionChange);
+
+                    const keySpan = document.createElement("span");
+                    keySpan.textContent = "(" + key + ") ";
+
+                    const textSpan = document.createElement("span");
+                    textSpan.className = "option-text";
+
+                    const originalText = q.options[key];
+                    let optionText = originalText;
+
+                    if (typeof originalText === "string" && originalText.trim().startsWith("*")) {
+                        starMarkedQuestion = true;
+                        optionText = originalText.replace(/^\s*\*\s*/, "");
+                    }
+
+                    textSpan.textContent = optionText;
+
+                    if (key === q.correctOption) {
+                        textSpan.classList.add("correct-option-text");
+                    }
+
+                    label.appendChild(input);
+                    label.appendChild(keySpan);
+                    label.appendChild(textSpan);
+
+                    optionsDiv.appendChild(label);
+                });
+
+                box.appendChild(optionsDiv);
+
+                const examDiv = document.createElement("div");
+                examDiv.className = "exam-name";
+                examDiv.textContent = q.exam || "";
+                box.appendChild(examDiv);
+
+                if (q.explanation) {
+                    const explDiv = document.createElement("div");
+                    explDiv.className = "explanation";
+                    explDiv.style.display = "none";
+                    explDiv.innerHTML = "<strong>Explanation:</strong> " + formatText(q.explanation);
+                    box.appendChild(explDiv);
+                }
+
+                if (starMarkedQuestion) {
+                    box.classList.add("star-marked");
+                }
+
+                quizContainer.appendChild(box);
+
+                state.answers[q.id] = null;
+            });
+        }
+
+        function startTimerIfNeeded() {
+            if (state.startTime !== null || state.isSubmitted) return;
+            state.startTime = new Date();
+            state.endTime = null;
+            state.timerInterval = setInterval(() => {
+                if (state.isPaused) return;
+                state.remainingSeconds--;
+                if (state.remainingSeconds <= 0) {
+                    state.remainingSeconds = 0;
+                    updateTimerDisplay();
+                    clearInterval(state.timerInterval);
+                    if (!state.isSubmitted) {
+                        submitQuiz(true);
+                    }
+                } else {
+                    updateTimerDisplay();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const mins = String(Math.floor(state.remainingSeconds / 60)).padStart(2, "0");
+            const secs = String(state.remainingSeconds % 60).padStart(2, "0");
+            timerEl.textContent = "Time left: " + mins + ":" + secs;
+        }
+
+        function onOptionChange(event) {
+            if (state.isSubmitted) return;
+
+            const input = event.target;
+            const qid = parseInt(input.name.substring(1), 10);
+            const optionKey = input.value;
+
+            startTimerIfNeeded();
+
+            const box = document.querySelector('.question-box[data-qid="' + qid + '"]');
+            const q = getQuestionById(qid);
+            if (!q) return;
+
+            state.answers[qid] = optionKey;
+
+            box.classList.remove("neutral", "unanswered", "correct", "incorrect", "star-marked");
+            if (optionKey === q.correctOption) {
+                box.classList.add("correct");
+            } else {
+                box.classList.add("incorrect");
+            }
+            box.classList.add("show-correct");
+
+            const explDiv = box.querySelector(".explanation");
+            if (explDiv) {
+                if (optionKey === q.correctOption) {
+                    explDiv.style.display = "none";
+                } else {
+                    explDiv.style.display = "block";
+                }
+            }
+        }
+
+        function getQuestionById(id) {
+            return quizData.find(q => q.id === id);
+        }
+
+        function computeStats() {
+            let total = quizData.length;
+            let attempted = 0;
+            let correct = 0;
+            let incorrect = 0;
+            let incorrectQs = [];
+            let unattemptedQs = [];
+
+            quizData.forEach(q => {
+                const ans = state.answers[q.id];
+                if (ans === null) {
+                    unattemptedQs.push(q.id);
+                } else {
+                    attempted++;
+                    if (ans === q.correctOption) {
+                        correct++;
+                    } else {
+                        incorrect++;
+                        incorrectQs.push(q.id);
+                    }
+                }
+            });
+
+            const accuracy = attempted > 0 ? (correct / attempted) * 100 : 0;
+            const marks = correct - (incorrect / 3);
+
+            let timeTakenSeconds = 0;
+            if (state.startTime && state.endTime) {
+                timeTakenSeconds = Math.round((state.endTime - state.startTime) / 1000);
+            }
+            const tMin = Math.floor(timeTakenSeconds / 60);
+            const tSec = timeTakenSeconds % 60;
+            const timeTakenStr = tMin + " min " + tSec + " sec";
+
+            return {
+                total,
+                attempted,
+                notAttempted: total - attempted,
+                correct,
+                incorrect,
+                accuracy,
+                marks,
+                incorrectQs,
+                unattemptedQs,
+                timeTakenStr
+            };
+        }
+
+        function submitQuiz(auto = false) {
+            if (state.isSubmitted) return;
+
+            if (!state.startTime) {
+                state.startTime = new Date();
+            }
+            state.endTime = new Date();
+            state.isSubmitted = true;
+            if (state.timerInterval) {
+                clearInterval(state.timerInterval);
+            }
+
+            const stats = computeStats();
+
+            quizData.forEach(q => {
+                const box = document.querySelector('.question-box[data-qid="' + q.id + '"]');
+                if (state.answers[q.id] === null) {
+                    box.classList.remove("correct", "incorrect", "show-correct", "unanswered");
+                    box.classList.add("neutral");
+                    const explDiv = box.querySelector(".explanation");
+                    if (explDiv) {
+                        explDiv.style.display = "none";
+                    }
+                } else {
+                    box.classList.add("show-correct");
+                    box.classList.remove("unanswered");
+                }
+            });
+
+            renderSummary(stats, auto);
+            renderRevisionNotes(stats);
+        }
+
+        function renderSummary(stats, auto) {
+            resultSummary.classList.remove("hidden");
+            resultSummary.innerHTML = "";
+
+            const heading = document.createElement("h2");
+            heading.textContent = "Quiz Summary";
+            resultSummary.appendChild(heading);
+
+            const table = document.createElement("table");
+            const rows = [
+                ["Total Questions", stats.total],
+                ["Attempted", stats.attempted],
+                ["Not Attempted", stats.notAttempted],
+                ["Correct", stats.correct],
+                ["Incorrect", stats.incorrect],
+                ["Accuracy %", stats.accuracy.toFixed(2)],
+                ["Marks (1, -1/3)", stats.marks.toFixed(2)],
+                ["Time Taken", stats.timeTakenStr],
+                ["Incorrect Q. Nos.", stats.incorrectQs.length ? stats.incorrectQs.join(", ") : "None"],
+                ["Unattempted Q. Nos.", stats.unattemptedQs.length ? stats.unattemptedQs.join(", ") : "None"]
+            ];
+
+            rows.forEach(([label, value]) => {
+                const tr = document.createElement("tr");
+                const th = document.createElement("th");
+                th.textContent = label;
+                const td = document.createElement("td");
+                td.textContent = value;
+                tr.appendChild(th);
+                tr.appendChild(td);
+                table.appendChild(tr);
+            });
+
+            resultSummary.appendChild(table);
+
+            const printDiv = document.createElement("div");
+            printDiv.className = "print-buttons";
+            const printBtn = document.createElement("button");
+            printBtn.textContent = "Print / Save Summary as PDF";
+            printBtn.addEventListener("click", printSummary);
+            printDiv.appendChild(printBtn);
+
+            resultSummary.appendChild(printDiv);
+
+            if (auto) {
+                const autoNote = document.createElement("p");
+                autoNote.style.marginTop = "8px";
+                autoNote.style.fontStyle = "italic";
+                autoNote.textContent = "Note: Quiz was auto-submitted when time ran out.";
+                resultSummary.appendChild(autoNote);
+            }
+        }
+
+        function getCorrectAnswerForNotes(q) {
+            const correctKey = q.correctOption;
+            const correctTextRaw = q.options[correctKey];
+            if (!correctTextRaw) return "Answer key not specified";
+
+            const lower = correctTextRaw.toLowerCase();
+
+            if (lower.includes("all of the above") || lower.includes("more than one")) {
+                const expandedParts = Object.keys(q.options)
+                    .filter(k => k !== correctKey)
+                    .map(k => "(" + k + ") " + q.options[k]);
+                return expandedParts.join("; ");
+            }
+
+            return correctTextRaw.replace(/^\s*\*\s*/, "");
+        }
+
+        function renderRevisionNotes(stats) {
+            notesContent.innerHTML = "";
+            const notes = [];
+
+            quizData.forEach(q => {
+                const ans = state.answers[q.id];
+                if (ans === q.correctOption && ans !== null) {
+                    return;
+                }
+                const noteP = document.createElement("p");
+
+                const questionText = q.question.replace(/\n/g, " ");
+                const correctAnswerText = getCorrectAnswerForNotes(q);
+
+                noteP.innerHTML =
+                    "<strong>Q" + q.id + ". " + questionText + "</strong>" +
+                    " &nbsp; ➜ &nbsp; " + correctAnswerText;
+
+                notesContent.appendChild(noteP);
+                notes.push(noteP);
+            });
+
+            if (notes.length > 0) {
+                notesSection.classList.remove("hidden");
+            } else {
+                notesSection.classList.add("hidden");
+            }
+        }
+
+        function resetQuiz() {
+            if (state.timerInterval) {
+                clearInterval(state.timerInterval);
+            }
+            state.isSubmitted = false;
+            state.startTime = null;
+            state.endTime = null;
+            state.totalSeconds = quizData.length * 15;
+            state.remainingSeconds = state.totalSeconds;
+            state.answers = {};
+            state.isPaused = false;
+            if (pauseResumeBtn) {
+                pauseResumeBtn.textContent = "Pause Timer";
+            }
+            quizData.forEach(q => {
+                state.answers[q.id] = null;
+            });
+            renderQuiz();
+            resultSummary.classList.add("hidden");
+            notesSection.classList.add("hidden");
+            notesContent.innerHTML = "";
+            updateTimerDisplay();
+        }
+
+        function printSummary() {
+            const summaryHtml = resultSummary.innerHTML;
+            const win = window.open("", "_blank");
+            win.document.write("<html><head><title>Quiz Summary</title></head><body>");
+            win.document.write("<h2>Quiz Summary</h2>");
+            win.document.write(summaryHtml);
+            win.document.write("</body></html>");
+            win.document.close();
+            win.focus();
+            win.print();
+        }
+
+        function printNotes() {
+            if (!notesContent.innerHTML.trim()) return;
+            const notesHtml = notesContent.innerHTML;
+            const win = window.open("", "_blank");
+            win.document.write("<html><head><title>Revision Notes</title></head><body>");
+            win.document.write("<h2>Revision Notes</h2>");
+            win.document.write(notesHtml);
+            win.document.write("</body></html>");
+            win.document.close();
+            win.focus();
+            win.print();
+        }
+
+        function togglePause() {
+            if (state.isSubmitted) return;
+            if (!state.startTime) return;
+            state.isPaused = !state.isPaused;
+            pauseResumeBtn.textContent = state.isPaused ? "Resume Timer" : "Pause Timer";
+        }
+
+        resetQuiz();
+
+        submitBtn.addEventListener("click", () => submitQuiz(false));
+        resetBtn.addEventListener("click", resetQuiz);
+        printNotesBtn.addEventListener("click", printNotes);
+        pauseResumeBtn.addEventListener("click", togglePause);
+    </script>
+</body>
+</html>
